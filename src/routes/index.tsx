@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "framer-motion";
-import { Battery, Home, Sun, Zap } from "lucide-react";
+import { Battery, Clock, Cpu, Home, Sun } from "lucide-react";
 import { AtmosphereBackground } from "@/components/command/AtmosphereBackground";
 import { TopNav } from "@/components/command/TopNav";
 import { MetricCard } from "@/components/command/MetricCard";
