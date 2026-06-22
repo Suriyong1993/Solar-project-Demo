@@ -1,216 +1,429 @@
-import { motion } from "framer-motion";
+import { Suspense, useMemo, useRef, useState, useEffect } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Float, Html } from "@react-three/drei";
+import * as THREE from "three";
 
 /**
- * Layered SVG energy scene: Sun -> Panels -> House -> Battery -> Grid
- * Pure SVG, no 3D engine. Glow, bloom, sheen, and traveling particles.
+ * Off-grid MPPT energy scene.
+ *
+ * Topology:
+ *           ☀ SUN
+ *             │
+ *         🟦 Solar Panels
+ *             │
+ *      ┌──────▼──────┐
+ *      │  HM-6096     │  (MPPT charge controller — center of system)
+ *      └─┬─────────┬─┘
+ *        ▼         ▼
+ *      🔋 Battery  🏠 DC Load
+ *
+ * Energy flow particles travel:
+ *   Sun → Panels → Controller → Battery (when charging)
+ *   Controller → Load (always when load > 0)
+ *   Battery → Controller → Load (when solar < load, i.e. discharging)
  */
-export function EnergyScene({ solarKw, batteryPct, loadKw }: { solarKw: number; batteryPct: number; loadKw: number }) {
-  // Path strings: from->to in 800x600 viewBox
-  const sunToPanels = "M 220 150 C 240 220, 260 280, 300 360";
-  const panelsToHouse = "M 360 410 C 440 420, 520 420, 580 380";
-  const panelsToBattery = "M 330 440 C 320 500, 320 520, 320 560";
-  const houseToGrid = "M 650 360 C 720 320, 750 260, 740 180";
 
+type Props = {
+  solarKw: number;
+  batteryPct: number;
+  loadKw: number;
+  batteryFlowKw: number; // + charging, - discharging
+};
+
+export function EnergyScene(props: Props) {
   return (
-    <div className="relative h-[560px] w-full sm:h-[620px] md:h-[640px]">
-      {/* atmosphere bloom behind sun */}
-      <div className="pointer-events-none absolute left-[10%] top-[8%] h-72 w-72 rounded-full opacity-70 blur-[80px]" style={{ background: "radial-gradient(circle,#fde68a 0%, rgba(250,204,21,0.4) 30%, transparent 70%)" }} />
-
-      <svg viewBox="0 0 800 640" className="absolute inset-0 h-full w-full" preserveAspectRatio="xMidYMid meet">
-        <defs>
-          <radialGradient id="sunCore" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#ffffff" />
-            <stop offset="20%" stopColor="#fff7c2" />
-            <stop offset="55%" stopColor="#facc15" />
-            <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.7" />
-          </radialGradient>
-          <radialGradient id="sunBloom" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#fde68a" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#facc15" stopOpacity="0" />
-          </radialGradient>
-          <linearGradient id="panelGlass" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#0b1220" />
-            <stop offset="50%" stopColor="#172033" />
-            <stop offset="100%" stopColor="#0b1220" />
-          </linearGradient>
-          <linearGradient id="houseFace" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1e293b" />
-            <stop offset="100%" stopColor="#0f172a" />
-          </linearGradient>
-          <linearGradient id="houseRoof" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#334155" />
-            <stop offset="100%" stopColor="#1e293b" />
-          </linearGradient>
-          <linearGradient id="windowGlow" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#fde68a" />
-            <stop offset="100%" stopColor="#f59e0b" />
-          </linearGradient>
-          <linearGradient id="batFill" x1="0" y1="1" x2="0" y2="0">
-            <stop offset="0%" stopColor="#10b981" />
-            <stop offset="100%" stopColor="#34d399" />
-          </linearGradient>
-          <linearGradient id="flowSolar" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#facc15" />
-            <stop offset="100%" stopColor="#f59e0b" />
-          </linearGradient>
-          <linearGradient id="flowBlue" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#38bdf8" />
-            <stop offset="100%" stopColor="#0ea5e9" />
-          </linearGradient>
-          <linearGradient id="flowGreen" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0%" stopColor="#10b981" />
-            <stop offset="100%" stopColor="#34d399" />
-          </linearGradient>
-          <filter id="bloom" x="-50%" y="-50%" width="200%" height="200%">
-            <feGaussianBlur stdDeviation="6" result="blur" />
-            <feMerge>
-              <feMergeNode in="blur" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-        </defs>
-
-        {/* ENERGY LINES (under objects) */}
-        <EnergyLine d={sunToPanels} stroke="url(#flowSolar)" />
-        <EnergyLine d={panelsToHouse} stroke="url(#flowGreen)" />
-        <EnergyLine d={panelsToBattery} stroke="url(#flowGreen)" />
-        <EnergyLine d={houseToGrid} stroke="url(#flowBlue)" reverse />
-
-        {/* SUN */}
-        <g style={{ transformOrigin: "200px 130px", animation: "breathe 6s ease-in-out infinite" }}>
-          <circle cx="200" cy="130" r="120" fill="url(#sunBloom)" />
-          <circle cx="200" cy="130" r="56" fill="url(#sunCore)" filter="url(#bloom)" />
-          {/* rays */}
-          <g style={{ transformOrigin: "200px 130px", animation: "ray-spin 60s linear infinite" }}>
-            {Array.from({ length: 12 }).map((_, i) => {
-              const a = (i / 12) * Math.PI * 2;
-              const x1 = 200 + Math.cos(a) * 72;
-              const y1 = 130 + Math.sin(a) * 72;
-              const x2 = 200 + Math.cos(a) * 96;
-              const y2 = 130 + Math.sin(a) * 96;
-              return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#fde68a" strokeOpacity="0.55" strokeWidth="2" strokeLinecap="round" />;
-            })}
-          </g>
-        </g>
-
-        {/* SOLAR PANELS (isometric quad) */}
-        <g transform="translate(260 360)">
-          {/* shadow */}
-          <ellipse cx="55" cy="105" rx="90" ry="10" fill="#000" opacity="0.45" />
-          {/* base/stand */}
-          <rect x="48" y="78" width="14" height="22" fill="#1f2937" />
-          {/* panel face */}
-          <g transform="skewX(-22) translate(0 -10)">
-            <rect x="-10" y="0" width="160" height="92" fill="url(#panelGlass)" stroke="#1f2937" strokeWidth="1.5" rx="3" />
-            {/* cells grid */}
-            {Array.from({ length: 4 }).map((_, r) =>
-              Array.from({ length: 7 }).map((_, c) => (
-                <rect key={`${r}-${c}`} x={-6 + c * 22} y={4 + r * 22} width="20" height="20" fill="#0b1220" stroke="#1e293b" strokeWidth="0.6" rx="1.5" />
-              ))
-            )}
-            {/* sheen */}
-            <rect x="-10" y="0" width="40" height="92" fill="white" opacity="0.08" style={{ animation: "sheen 5s ease-in-out infinite" }} />
-          </g>
-        </g>
-
-        {/* HOUSE — modern isometric */}
-        <g transform="translate(540 280)">
-          {/* shadow */}
-          <ellipse cx="80" cy="170" rx="120" ry="12" fill="#000" opacity="0.45" />
-          {/* main body */}
-          <polygon points="0,150 0,70 90,40 90,130" fill="url(#houseFace)" />
-          <polygon points="90,40 90,130 170,100 170,30" fill="#0b1424" />
-          <polygon points="0,70 90,40 170,30 80,0" fill="url(#houseRoof)" />
-          {/* warm window glow */}
-          <rect x="14" y="86" width="22" height="30" fill="url(#windowGlow)" opacity="0.9" filter="url(#bloom)" />
-          <rect x="46" y="94" width="22" height="22" fill="url(#windowGlow)" opacity="0.75" />
-          <rect x="105" y="80" width="18" height="26" fill="url(#windowGlow)" opacity="0.6" />
-          <rect x="135" y="68" width="18" height="22" fill="url(#windowGlow)" opacity="0.5" />
-          {/* door slit */}
-          <rect x="68" y="100" width="10" height="40" fill="#020617" />
-          {/* roof solar panel hint */}
-          <polygon points="20,62 80,42 80,52 28,72" fill="#0b1220" stroke="#1f2937" strokeWidth="0.6" />
-        </g>
-
-        {/* BATTERY */}
-        <g transform="translate(260 530)">
-          <rect x="0" y="0" width="140" height="70" rx="14" fill="#0b1424" stroke="#1f2937" />
-          <rect x="-6" y="22" width="6" height="26" rx="2" fill="#1f2937" />
-          {/* fill */}
-          <rect x="8" y="8" width={(140 - 16) * (batteryPct / 100)} height="54" rx="10" fill="url(#batFill)" opacity="0.85" />
-          <text x="70" y="44" textAnchor="middle" fill="#ecfdf5" fontSize="20" fontWeight="600" fontFamily="Space Grotesk, Inter">
-            {batteryPct.toFixed(0)}%
-          </text>
-          {/* electric arcs */}
-          <g stroke="#a7f3d0" strokeWidth="1" fill="none" opacity="0.7">
-            <path d="M 20 -4 L 28 4 L 24 8 L 32 18" style={{ animation: "twinkle 1.4s ease-in-out infinite" }} />
-            <path d="M 110 -4 L 118 6 L 114 10 L 122 20" style={{ animation: "twinkle 1.8s ease-in-out 0.3s infinite" }} />
-          </g>
-        </g>
-
-        {/* GRID TOWER */}
-        <g transform="translate(690 140)">
-          {/* lattice */}
-          <polygon points="0,200 36,200 28,0 8,0" fill="#0b1424" stroke="#334155" strokeWidth="1" />
-          <line x1="6" y1="40" x2="30" y2="40" stroke="#334155" />
-          <line x1="8" y1="80" x2="28" y2="80" stroke="#334155" />
-          <line x1="4" y1="120" x2="32" y2="120" stroke="#334155" />
-          <line x1="2" y1="160" x2="34" y2="160" stroke="#334155" />
-          <line x1="0" y1="200" x2="36" y2="200" stroke="#334155" />
-          {/* crossarms */}
-          <rect x="-12" y="20" width="60" height="3" fill="#334155" />
-          <rect x="-16" y="50" width="68" height="3" fill="#334155" />
-          {/* energy pulse */}
-          <circle cx="18" cy="20" r="3" fill="#38bdf8" filter="url(#bloom)">
-            <animate attributeName="opacity" values="0.3;1;0.3" dur="1.6s" repeatCount="indefinite" />
-          </circle>
-        </g>
-      </svg>
-
-      {/* floating labels */}
-      <Label x="6%" y="38%" color="#facc15" title="SOLAR" value={`${solarKw.toFixed(2)} kW`} />
-      <Label x="34%" y="78%" color="#10b981" title="PANELS" value="ACTIVE" />
-      <Label x="64%" y="38%" color="#fde68a" title="HOME" value={`${loadKw.toFixed(2)} kW`} />
-      <Label x="20%" y="92%" color="#34d399" title="BATTERY" value={`${batteryPct.toFixed(0)}%`} />
-      <Label x="82%" y="22%" color="#38bdf8" title="GRID" value="STANDBY" />
+    <div className="relative h-[520px] w-full sm:h-[600px] md:h-[660px]">
+      {/* Soft halo behind the canvas */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{
+          background:
+            "radial-gradient(ellipse 60% 50% at 50% 30%, rgba(250,204,21,0.10), transparent 60%), radial-gradient(ellipse 70% 60% at 50% 90%, rgba(16,185,129,0.08), transparent 70%)",
+        }}
+      />
+      <Canvas
+        dpr={[1, 2]}
+        gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+        camera={{ position: [0, 1.2, 9], fov: 42 }}
+      >
+        <color attach="background" args={["#00000000"]} />
+        <ambientLight intensity={0.35} />
+        <directionalLight position={[5, 8, 5]} intensity={0.9} color="#fde68a" />
+        <pointLight position={[-4, 2, 3]} intensity={0.6} color="#38bdf8" />
+        <Suspense fallback={null}>
+          <Scene {...props} />
+        </Suspense>
+      </Canvas>
     </div>
   );
 }
 
-function EnergyLine({ d, stroke, reverse }: { d: string; stroke: string; reverse?: boolean }) {
+const POS = {
+  sun: new THREE.Vector3(0, 3.2, 0),
+  panels: new THREE.Vector3(0, 1.5, 0),
+  controller: new THREE.Vector3(0, -0.2, 0),
+  battery: new THREE.Vector3(-2.4, -1.9, 0),
+  load: new THREE.Vector3(2.4, -1.9, 0),
+};
+
+function Scene({ solarKw, batteryPct, loadKw, batteryFlowKw }: Props) {
+  const charging = batteryFlowKw >= 0;
+
   return (
-    <g>
-      <path d={d} fill="none" stroke={stroke} strokeOpacity="0.18" strokeWidth="6" strokeLinecap="round" />
-      <path
-        d={d}
-        fill="none"
-        stroke={stroke}
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeDasharray="6 14"
-        style={{
-          animation: `dash-flow 2.4s linear infinite ${reverse ? "reverse" : ""}`,
-          filter: "drop-shadow(0 0 6px currentColor)",
-        }}
+    <group>
+      <Float speed={1} rotationIntensity={0} floatIntensity={0.4}>
+        <Sun position={POS.sun} intensity={solarKw} />
+      </Float>
+
+      <Panels position={POS.panels} />
+      <Controller position={POS.controller} />
+      <Battery position={POS.battery} pct={batteryPct} charging={charging} />
+      <Load position={POS.load} kw={loadKw} />
+
+      {/* Energy flows */}
+      <Flow from={POS.sun} to={POS.panels} color="#facc15" speed={1.2} count={6} active={solarKw > 0.2} />
+      <Flow from={POS.panels} to={POS.controller} color="#facc15" speed={1.4} count={6} active={solarKw > 0.2} />
+
+      {/* Controller -> Battery (charging) or Battery -> Controller (discharging) */}
+      <Flow
+        from={charging ? POS.controller : POS.battery}
+        to={charging ? POS.battery : POS.controller}
+        color={charging ? "#10b981" : "#f59e0b"}
+        speed={1.0 + Math.min(2, Math.abs(batteryFlowKw) * 0.25)}
+        count={5}
+        active
       />
-    </g>
+
+      {/* Controller -> Load (always while load > 0) */}
+      <Flow from={POS.controller} to={POS.load} color="#38bdf8" speed={1.2 + loadKw * 0.2} count={5} active={loadKw > 0.05} />
+
+      {/* HTML overlay labels */}
+      <Label position={[POS.sun.x, POS.sun.y + 0.95, 0]} color="#facc15" title="SUN" value={`${solarKw.toFixed(2)} kW`} />
+      <Label position={[POS.panels.x + 1.7, POS.panels.y, 0]} color="#fde68a" title="PANELS" value="6× 450W" />
+      <Label position={[POS.controller.x - 2.3, POS.controller.y + 0.1, 0]} color="#38bdf8" title="HM-6096" value="MPPT" />
+      <Label position={[POS.battery.x, POS.battery.y - 1.05, 0]} color="#10b981" title="BATTERY" value={`${batteryPct.toFixed(0)}%`} />
+      <Label position={[POS.load.x, POS.load.y - 1.05, 0]} color="#38bdf8" title="DC LOAD" value={`${loadKw.toFixed(2)} kW`} />
+    </group>
   );
 }
 
-function Label({ x, y, color, title, value }: { x: string; y: string; color: string; title: string; value: string }) {
+/* ---------------------------------- Sun ---------------------------------- */
+function Sun({ position, intensity }: { position: THREE.Vector3; intensity: number }) {
+  const core = useRef<THREE.Mesh>(null);
+  const corona = useRef<THREE.Mesh>(null);
+  const rays = useRef<THREE.Group>(null);
+  useFrame((_, dt) => {
+    if (core.current) {
+      const s = 1 + Math.sin(performance.now() * 0.0015) * 0.04;
+      core.current.scale.setScalar(s);
+    }
+    if (corona.current) {
+      corona.current.rotation.z += dt * 0.05;
+    }
+    if (rays.current) {
+      rays.current.rotation.z += dt * 0.08;
+    }
+  });
+  const rayArray = useMemo(() => Array.from({ length: 12 }), []);
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.8, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="glass absolute -translate-x-1/2 -translate-y-1/2 rounded-xl px-2.5 py-1.5"
-      style={{ left: x, top: y, boxShadow: `0 8px 30px rgba(0,0,0,0.4), 0 0 24px ${color}33` }}
-    >
-      <div className="flex items-center gap-1.5">
-        <span className="h-1.5 w-1.5 rounded-full" style={{ background: color, boxShadow: `0 0 8px ${color}` }} />
-        <span className="font-display text-[9px] font-semibold tracking-[0.18em] text-slate-300">{title}</span>
-      </div>
-      <div className="mt-0.5 font-display text-[12px] font-semibold tabular-nums" style={{ color }}>{value}</div>
-    </motion.div>
+    <group position={position}>
+      {/* outer glow */}
+      <mesh ref={corona}>
+        <sphereGeometry args={[1.05, 24, 24]} />
+        <meshBasicMaterial color="#fde68a" transparent opacity={0.12} />
+      </mesh>
+      {/* core */}
+      <mesh ref={core}>
+        <sphereGeometry args={[0.55, 32, 32]} />
+        <meshStandardMaterial
+          color="#facc15"
+          emissive="#fbbf24"
+          emissiveIntensity={1.4 + Math.min(intensity * 0.1, 0.6)}
+          roughness={0.4}
+        />
+      </mesh>
+      {/* rays */}
+      <group ref={rays}>
+        {rayArray.map((_, i) => {
+          const a = (i / 12) * Math.PI * 2;
+          return (
+            <mesh key={i} position={[Math.cos(a) * 0.92, Math.sin(a) * 0.92, 0]} rotation={[0, 0, a]}>
+              <boxGeometry args={[0.22, 0.04, 0.04]} />
+              <meshBasicMaterial color="#fde68a" transparent opacity={0.85} />
+            </mesh>
+          );
+        })}
+      </group>
+    </group>
+  );
+}
+
+/* -------------------------------- Panels --------------------------------- */
+function Panels({ position }: { position: THREE.Vector3 }) {
+  const group = useRef<THREE.Group>(null);
+  useFrame(() => {
+    if (group.current) {
+      group.current.rotation.x = -0.55 + Math.sin(performance.now() * 0.0006) * 0.02;
+    }
+  });
+  // Low-poly grid of cells
+  const cells = useMemo(() => {
+    const arr: { x: number; y: number }[] = [];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) arr.push({ x: c, y: r });
+    return arr;
+  }, []);
+  return (
+    <group position={position}>
+      <group ref={group}>
+        {/* frame */}
+        <mesh position={[0, 0, -0.04]}>
+          <boxGeometry args={[2.7, 1.45, 0.08]} />
+          <meshStandardMaterial color="#1f2937" roughness={0.5} metalness={0.6} />
+        </mesh>
+        {/* glass */}
+        <mesh position={[0, 0, 0.005]}>
+          <planeGeometry args={[2.6, 1.35]} />
+          <meshStandardMaterial color="#0b1220" emissive="#1e3a8a" emissiveIntensity={0.18} roughness={0.2} metalness={0.4} />
+        </mesh>
+        {/* cells */}
+        {cells.map((c, i) => (
+          <mesh key={i} position={[-1.15 + c.x * 0.42, -0.45 + c.y * 0.45, 0.012]}>
+            <planeGeometry args={[0.38, 0.4]} />
+            <meshStandardMaterial color="#0e1a36" emissive="#3b82f6" emissiveIntensity={0.18} roughness={0.3} />
+          </mesh>
+        ))}
+      </group>
+      {/* stand */}
+      <mesh position={[0, -0.95, -0.1]}>
+        <boxGeometry args={[0.18, 0.7, 0.18]} />
+        <meshStandardMaterial color="#334155" roughness={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
+/* ------------------------------ Controller ------------------------------- */
+function Controller({ position }: { position: THREE.Vector3 }) {
+  const led = useRef<THREE.Mesh>(null);
+  useFrame(() => {
+    if (led.current) {
+      const m = led.current.material as THREE.MeshStandardMaterial;
+      m.emissiveIntensity = 1.2 + Math.sin(performance.now() * 0.006) * 0.6;
+    }
+  });
+  return (
+    <group position={position}>
+      {/* halo */}
+      <mesh position={[0, 0, -0.2]}>
+        <ringGeometry args={[1.05, 1.35, 48]} />
+        <meshBasicMaterial color="#38bdf8" transparent opacity={0.18} side={THREE.DoubleSide} />
+      </mesh>
+      {/* body */}
+      <mesh>
+        <boxGeometry args={[1.9, 1.1, 0.45]} />
+        <meshStandardMaterial color="#0b1424" roughness={0.5} metalness={0.7} />
+      </mesh>
+      {/* faceplate */}
+      <mesh position={[0, 0, 0.226]}>
+        <planeGeometry args={[1.78, 0.98]} />
+        <meshStandardMaterial color="#111827" emissive="#0ea5e9" emissiveIntensity={0.08} roughness={0.4} />
+      </mesh>
+      {/* screen */}
+      <mesh position={[-0.35, 0.12, 0.232]}>
+        <planeGeometry args={[0.9, 0.42]} />
+        <meshStandardMaterial color="#020617" emissive="#38bdf8" emissiveIntensity={0.55} />
+      </mesh>
+      {/* status LED */}
+      <mesh ref={led} position={[0.55, 0.3, 0.232]}>
+        <sphereGeometry args={[0.05, 12, 12]} />
+        <meshStandardMaterial color="#34d399" emissive="#10b981" emissiveIntensity={1.6} />
+      </mesh>
+      {/* label etch */}
+      <Html position={[-0.35, 0.12, 0.25]} center transform distanceFactor={4} style={{ pointerEvents: "none" }}>
+        <div style={{ color: "#7dd3fc", fontFamily: "Space Grotesk, Inter", fontWeight: 600, fontSize: 22, letterSpacing: 2 }}>
+          HM-6096
+        </div>
+      </Html>
+      <Html position={[0.4, -0.28, 0.25]} center transform distanceFactor={5} style={{ pointerEvents: "none" }}>
+        <div style={{ color: "#64748b", fontFamily: "Space Grotesk, Inter", fontWeight: 500, fontSize: 14, letterSpacing: 3 }}>
+          MPPT · 60A
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+/* -------------------------------- Battery -------------------------------- */
+function Battery({ position, pct, charging }: { position: THREE.Vector3; pct: number; charging: boolean }) {
+  const fillRef = useRef<THREE.Mesh>(null);
+  useFrame(() => {
+    if (fillRef.current) {
+      const target = (pct / 100) * 0.92;
+      fillRef.current.scale.y = THREE.MathUtils.lerp(fillRef.current.scale.y, target, 0.05);
+      fillRef.current.position.y = -0.46 + (fillRef.current.scale.y * 1) / 2;
+    }
+  });
+  return (
+    <group position={position}>
+      {/* shell */}
+      <mesh>
+        <boxGeometry args={[1.1, 1.05, 0.5]} />
+        <meshStandardMaterial color="#0b1424" roughness={0.5} metalness={0.55} />
+      </mesh>
+      {/* terminal */}
+      <mesh position={[0, 0.6, 0]}>
+        <boxGeometry args={[0.32, 0.12, 0.18]} />
+        <meshStandardMaterial color="#334155" />
+      </mesh>
+      {/* fill */}
+      <mesh ref={fillRef} position={[0, -0.46, 0.26]} scale={[1, 0.001, 1]}>
+        <planeGeometry args={[0.92, 1]} />
+        <meshStandardMaterial
+          color={charging ? "#10b981" : "#f59e0b"}
+          emissive={charging ? "#10b981" : "#f59e0b"}
+          emissiveIntensity={0.6}
+          transparent
+          opacity={0.9}
+        />
+      </mesh>
+      {/* faceplate frame */}
+      <mesh position={[0, 0, 0.255]}>
+        <planeGeometry args={[0.96, 0.94]} />
+        <meshBasicMaterial color="#000" transparent opacity={0.0} />
+      </mesh>
+      <Html position={[0, 0, 0.27]} center transform distanceFactor={3.5} style={{ pointerEvents: "none" }}>
+        <div
+          style={{
+            color: "#ecfdf5",
+            fontFamily: "Space Grotesk, Inter",
+            fontWeight: 700,
+            fontSize: 32,
+            textShadow: "0 0 12px rgba(16,185,129,0.6)",
+          }}
+        >
+          {pct.toFixed(0)}%
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+/* ---------------------------------- Load --------------------------------- */
+function Load({ position, kw }: { position: THREE.Vector3; kw: number }) {
+  const win = useRef<THREE.MeshStandardMaterial>(null);
+  useFrame(() => {
+    if (win.current) {
+      win.current.emissiveIntensity = 0.6 + Math.min(kw * 0.4, 1.2) + Math.sin(performance.now() * 0.004) * 0.1;
+    }
+  });
+  return (
+    <group position={position}>
+      {/* body */}
+      <mesh>
+        <boxGeometry args={[1.1, 1.0, 0.55]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.55} metalness={0.4} />
+      </mesh>
+      {/* roof */}
+      <mesh position={[0, 0.68, 0]} rotation={[0, 0, Math.PI / 4]}>
+        <boxGeometry args={[0.78, 0.78, 0.55]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.6} />
+      </mesh>
+      {/* window */}
+      <mesh position={[0, -0.05, 0.28]}>
+        <planeGeometry args={[0.55, 0.4]} />
+        <meshStandardMaterial ref={win} color="#fde68a" emissive="#f59e0b" emissiveIntensity={0.9} />
+      </mesh>
+      {/* door */}
+      <mesh position={[-0.32, -0.3, 0.28]}>
+        <planeGeometry args={[0.18, 0.4]} />
+        <meshStandardMaterial color="#020617" />
+      </mesh>
+    </group>
+  );
+}
+
+/* ---------------------------------- Flow --------------------------------- */
+function Flow({
+  from,
+  to,
+  color,
+  speed,
+  count,
+  active,
+}: {
+  from: THREE.Vector3;
+  to: THREE.Vector3;
+  color: string;
+  speed: number;
+  count: number;
+  active: boolean;
+}) {
+  const group = useRef<THREE.Group>(null);
+  const offsets = useMemo(() => Array.from({ length: count }, (_, i) => i / count), [count]);
+  const tubeGeom = useMemo(() => {
+    const curve = new THREE.LineCurve3(from.clone(), to.clone());
+    return new THREE.TubeGeometry(curve, 1, 0.018, 6, false);
+  }, [from, to]);
+  useFrame((_, dt) => {
+    if (!group.current || !active) return;
+    group.current.children.forEach((child, i) => {
+      const m = child as THREE.Mesh;
+      const baseT = offsets[i];
+      const t = ((performance.now() / 1000) * speed * 0.25 + baseT) % 1;
+      m.position.lerpVectors(from, to, t);
+      const s = 0.9 + Math.sin(t * Math.PI) * 0.6;
+      m.scale.setScalar(s);
+    });
+  });
+  return (
+    <group>
+      {/* faint tube backbone */}
+      <mesh geometry={tubeGeom}>
+        <meshBasicMaterial color={color} transparent opacity={active ? 0.22 : 0.06} />
+      </mesh>
+      {active && (
+        <group ref={group}>
+          {offsets.map((_, i) => (
+            <mesh key={i}>
+              <sphereGeometry args={[0.07, 12, 12]} />
+              <meshBasicMaterial color={color} transparent opacity={0.95} />
+            </mesh>
+          ))}
+        </group>
+      )}
+    </group>
+  );
+}
+
+/* --------------------------------- Label --------------------------------- */
+function Label({
+  position,
+  color,
+  title,
+  value,
+}: {
+  position: [number, number, number];
+  color: string;
+  title: string;
+  value: string;
+}) {
+  // Only render the HTML overlay client-side to avoid hydration mismatches.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  if (!mounted) return null;
+  return (
+    <Html position={position} center style={{ pointerEvents: "none" }}>
+      <div
+        className="glass whitespace-nowrap rounded-xl px-2.5 py-1.5"
+        style={{ boxShadow: `0 8px 30px rgba(0,0,0,0.4), 0 0 24px ${color}33` }}
+      >
+        <div className="flex items-center gap-1.5">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ background: color, boxShadow: `0 0 8px ${color}` }} />
+          <span className="font-display text-[9px] font-semibold tracking-[0.18em] text-slate-300">{title}</span>
+        </div>
+        <div className="mt-0.5 font-display text-[12px] font-semibold tabular-nums" style={{ color }}>
+          {value}
+        </div>
+      </Html>
   );
 }
