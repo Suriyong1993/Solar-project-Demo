@@ -1,34 +1,40 @@
 import { useMemo } from "react";
 
+// Deterministic PRNG so SSR and client render the same starfield (no hydration mismatch).
+function mulberry32(seed: number) {
+  return function () {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function AtmosphereBackground() {
-  const stars = useMemo(
-    () =>
-      Array.from({ length: 90 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        y: Math.random() * 70,
-        size: Math.random() * 1.6 + 0.4,
-        delay: Math.random() * 4,
-        dur: 2.5 + Math.random() * 3,
-      })),
-    []
-  );
-  const particles = useMemo(
-    () =>
-      Array.from({ length: 28 }, (_, i) => ({
-        id: i,
-        x: Math.random() * 100,
-        y: Math.random() * 100,
-        delay: Math.random() * 8,
-        dur: 12 + Math.random() * 14,
-        color: Math.random() > 0.5 ? "rgba(250,204,21,0.5)" : "rgba(56,189,248,0.55)",
-      })),
-    []
-  );
+  const { stars, particles } = useMemo(() => {
+    const r1 = mulberry32(1337);
+    const stars = Array.from({ length: 90 }, (_, i) => ({
+      id: i,
+      x: +(r1() * 100).toFixed(3),
+      y: +(r1() * 70).toFixed(3),
+      size: +(r1() * 1.6 + 0.4).toFixed(3),
+      delay: +(r1() * 4).toFixed(3),
+      dur: +(2.5 + r1() * 3).toFixed(3),
+    }));
+    const r2 = mulberry32(99);
+    const particles = Array.from({ length: 28 }, (_, i) => ({
+      id: i,
+      x: +(r2() * 100).toFixed(3),
+      y: +(r2() * 100).toFixed(3),
+      delay: +(r2() * 8).toFixed(3),
+      dur: +(12 + r2() * 14).toFixed(3),
+      color: r2() > 0.5 ? "rgba(250,204,21,0.5)" : "rgba(56,189,248,0.55)",
+    }));
+    return { stars, particles };
+  }, []);
 
   return (
     <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-      {/* base gradient */}
       <div
         className="absolute inset-0"
         style={{
@@ -36,7 +42,6 @@ export function AtmosphereBackground() {
             "radial-gradient(ellipse 90% 60% at 20% 0%, rgba(250,204,21,0.10), transparent 55%), radial-gradient(ellipse 70% 55% at 90% 25%, rgba(56,189,248,0.12), transparent 60%), radial-gradient(ellipse 80% 60% at 50% 110%, rgba(139,92,246,0.10), transparent 60%), linear-gradient(180deg,#020617 0%,#07111f 55%,#0f172a 100%)",
         }}
       />
-      {/* starfield */}
       <svg className="absolute inset-0 h-full w-full">
         {stars.map((s) => (
           <circle
@@ -50,22 +55,18 @@ export function AtmosphereBackground() {
           />
         ))}
       </svg>
-      {/* drifting gold blob */}
       <div
         className="absolute -left-32 top-20 h-[480px] w-[480px] rounded-full opacity-40 blur-[120px]"
         style={{ background: "radial-gradient(circle, #facc15 0%, transparent 70%)", animation: "drift 22s ease-in-out infinite" }}
       />
-      {/* drifting blue blob */}
       <div
         className="absolute -right-40 top-1/3 h-[560px] w-[560px] rounded-full opacity-40 blur-[140px]"
         style={{ background: "radial-gradient(circle, #38bdf8 0%, transparent 70%)", animation: "drift 28s ease-in-out 4s infinite reverse" }}
       />
-      {/* violet floor glow */}
       <div
         className="absolute -bottom-40 left-1/4 h-[520px] w-[640px] rounded-full opacity-30 blur-[140px]"
         style={{ background: "radial-gradient(circle, #8b5cf6 0%, transparent 70%)", animation: "drift 32s ease-in-out 2s infinite" }}
       />
-      {/* perspective grid floor */}
       <div
         className="absolute inset-x-0 bottom-0 h-[55vh]"
         style={{
@@ -86,7 +87,6 @@ export function AtmosphereBackground() {
           }}
         />
       </div>
-      {/* particles */}
       {particles.map((p) => (
         <span
           key={p.id}
@@ -100,7 +100,6 @@ export function AtmosphereBackground() {
           }}
         />
       ))}
-      {/* top vignette */}
       <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse 100% 60% at 50% 0%, transparent 50%, rgba(2,6,23,0.55) 100%)" }} />
     </div>
   );
