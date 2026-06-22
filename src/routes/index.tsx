@@ -83,13 +83,13 @@ function Index() {
               label="Battery"
               value={m.batteryPct.toFixed(0)}
               unit="%"
-              delta="Charging"
+              delta={m.batteryFlowKw >= 0 ? `Charging · ${m.batteryFlowKw.toFixed(2)} kW` : `Discharging · ${Math.abs(m.batteryFlowKw).toFixed(2)} kW`}
             />
             <MetricCard
               accent="violet"
               index={2}
               icon={<Home className="h-4 w-4" strokeWidth={2.4} />}
-              label="Home Load"
+              label="DC Load"
               value={m.loadKw.toFixed(2)}
               unit="kW"
               delta="Steady"
@@ -97,11 +97,11 @@ function Index() {
             <MetricCard
               accent="sky"
               index={3}
-              icon={<Zap className="h-4 w-4" strokeWidth={2.4} />}
-              label="Grid"
-              value={m.gridKw.toFixed(2)}
-              unit="kW"
-              delta="Standby"
+              icon={<Clock className="h-4 w-4" strokeWidth={2.4} />}
+              label="Runtime"
+              value={m.runtimeHours > 24 ? "24+" : m.runtimeHours.toFixed(1)}
+              unit="h"
+              delta={m.batteryFlowKw >= 0 ? "Net positive" : "Battery feeding load"}
             />
           </div>
         </div>
@@ -113,7 +113,7 @@ function Index() {
           transition={{ duration: 1.2, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
           className="relative"
         >
-          <EnergyScene solarKw={m.solarKw} batteryPct={m.batteryPct} loadKw={m.loadKw} />
+          <EnergyScene solarKw={m.solarKw} batteryPct={m.batteryPct} loadKw={m.loadKw} batteryFlowKw={m.batteryFlowKw} />
         </motion.div>
       </section>
 
