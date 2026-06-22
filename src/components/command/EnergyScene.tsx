@@ -424,6 +424,7 @@ function Label({
         <div className="mt-0.5 font-display text-[12px] font-semibold tabular-nums" style={{ color }}>
           {value}
         </div>
-      </Html>
+      </div>
+    </Html>
   );
 }
