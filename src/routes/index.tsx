@@ -54,7 +54,7 @@ function Index() {
           stats: [
             { label: "Current Output", value: `${m.solarKw.toFixed(2)} kW` },
             { label: "Daily Peak", value: `${(m.peakKw * 1000).toFixed(0)} W` },
-            { label: "Efficiency", value: `${(m.solarKw > 0 ? (m.solarKw / 5.5) * 100 : 0).toFixed(1)}%` },
+            { label: "Efficiency", value: `${(m.solarKw > 0 ? (m.solarKw / 5.8) * 100 : 0).toFixed(1)}%` },
             { label: "Status", value: m.solarKw > 0.1 ? "GENERATING" : "STANDBY" },
           ],
         };

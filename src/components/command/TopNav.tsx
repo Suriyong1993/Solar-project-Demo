@@ -54,7 +54,7 @@ export function TopNav({ tuya, onOpenSpecs, onOpenAlerts, onOpenSettings }: { tu
           Specs
         </button>
         <span className="hidden rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 font-mono text-[10px] font-medium tracking-wider text-[#6b6b7b] md:inline-block">
-          {tuya?.deviceId ? `DEV-${tuya.deviceId.substring(0, 6)}` : "NO DEVICE"}
+          {tuya?.deviceId ? `DEV-${tuya.deviceId.substring(0, 6)}` : "SIM MODE"}
         </span>
         <IconButton onClick={onOpenAlerts}><Bell className="h-3.5 w-3.5" /></IconButton>
         <IconButton onClick={onOpenSettings}><Settings className="h-3.5 w-3.5" /></IconButton>
@@ -83,7 +83,7 @@ function StatusLine({ tuya }: { tuya?: TuyaStatus }) {
           <span className="absolute inline-flex h-full w-full animate-ping-subtle rounded-full bg-[#2dd4bf] opacity-75" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#2dd4bf]" />
         </span>
-        <Wifi className="h-3 w-3 text-[#2dd4bf]" />
+        <Wifi className="h-3 w-3 text-[#2dd4bf] animate-data-pulse" />
         <span className="text-[11px] font-medium text-[#2dd4bf]">LIVE</span>
       </div>
     );

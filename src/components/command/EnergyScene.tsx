@@ -22,7 +22,7 @@ export function EnergyScene({
   onSelectNode,
 }: EnergySceneProps) {
   return (
-    <div className="relative h-[560px] w-full rounded-lg border border-white/[0.06] bg-[#050816] overflow-hidden">
+    <div className="relative h-[400px] w-full rounded-lg border border-white/[0.06] bg-[#050816] overflow-hidden md:h-[560px]">
       {/* HUD frame — refined, minimal */}
       <div className="pointer-events-none absolute inset-0 z-10">
         {/* Corner marks */}
