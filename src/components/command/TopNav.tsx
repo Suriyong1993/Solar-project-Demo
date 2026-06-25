@@ -1,77 +1,102 @@
 import { useEffect, useState } from "react";
-import { Bell, Settings, Sun, Thermometer, Wifi } from "lucide-react";
+import { Bell, Settings, Sun, Thermometer, Wifi, BarChart3 } from "lucide-react";
 import { motion } from "framer-motion";
 
-export function TopNav() {
+import type { TuyaStatus } from "@/lib/tuya-integration";
+
+export function TopNav({ tuya, onOpenSpecs }: { tuya?: TuyaStatus; onOpenSpecs: () => void }) {
   const [time, setTime] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const t = time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const t = time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
 
   return (
     <motion.header
-      initial={{ y: -30, opacity: 0 }}
+      initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-      className="glass sticky top-4 z-40 mx-4 flex h-[72px] items-center justify-between rounded-2xl px-5 md:mx-8"
-      style={{ boxShadow: "0 20px 80px rgba(0,0,0,0.45), 0 0 40px rgba(250,204,21,0.06)" }}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      className="sticky top-0 z-40 mx-4 flex h-14 items-center justify-between rounded-lg border border-white/[0.06] bg-[#050816]/60 px-5 backdrop-blur-[30px] md:mx-8"
     >
       {/* left */}
-      <div className="flex items-center gap-4">
-        <div className="relative grid h-10 w-10 place-items-center rounded-xl" style={{ background: "radial-gradient(circle at 30% 30%, #fde68a, #f59e0b)", boxShadow: "0 0 24px rgba(250,204,21,0.45)" }}>
-          <Sun className="h-5 w-5 text-[#1a1100]" strokeWidth={2.4} />
+      <div className="flex items-center gap-3">
+        <div className="relative grid h-8 w-8 place-items-center rounded-md border border-[#d4a032]/20 bg-[#d4a032]/5">
+          <Sun className="h-4 w-4 text-[#d4a032]" strokeWidth={2} />
         </div>
         <div className="hidden flex-col leading-tight sm:flex">
-          <span className="font-display text-[15px] font-semibold tracking-tight text-white">MPPT 6096</span>
-          <span className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-400">Solar Monitor</span>
+          <span className="text-[13px] font-semibold tracking-tight text-[#e2e2e8]">SOLAR MONITOR</span>
+          <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-[#6b6b7b]">MPPT-6096 Telemetry</span>
         </div>
       </div>
 
-      {/* center */}
-      <div className="hidden items-center gap-3 lg:flex">
-        <StatusPill>
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-          </span>
-          <Wifi className="h-3.5 w-3.5 text-emerald-300" />
-          <span className="text-[12px] font-medium text-emerald-200">Online</span>
-        </StatusPill>
-        <StatusPill>
-          <Thermometer className="h-3.5 w-3.5 text-amber-300" />
-          <span className="text-[12px] font-medium text-slate-200">31°C</span>
-        </StatusPill>
-        <StatusPill>
-          <span className="font-display tabular-nums text-[12px] font-medium text-slate-100">{t}</span>
-        </StatusPill>
+      {/* center — status */}
+      <div className="hidden items-center gap-4 lg:flex">
+        <StatusLine tuya={tuya} />
+        <div className="flex items-center gap-1.5">
+          <Thermometer className="h-3 w-3 text-[#6b6b7b]" />
+          <span className="text-[11px] font-medium text-[#6b6b7b]">{tuya?.source === "tuya" ? "—" : "—"}</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-mono tabular-nums font-medium text-[#d4a032]">{t}</span>
+          <span className="text-[9px] uppercase tracking-wider text-[#6b6b7b]">UTC+7</span>
+        </div>
       </div>
 
       {/* right */}
       <div className="flex items-center gap-2">
-        <span className="hidden rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 font-display text-[11px] font-medium tracking-widest text-slate-300 md:inline-block">
-          ID · 6096-A · 7F2C
+        <button
+          onClick={onOpenSpecs}
+          className="hidden items-center gap-1.5 rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 text-[9px] font-semibold uppercase tracking-wider text-[#6b6b7b] transition-all hover:border-[#d4a032]/20 hover:text-[#d4a032] sm:flex"
+        >
+          <BarChart3 className="h-3 w-3" />
+          Specs
+        </button>
+        <span className="hidden rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 font-mono text-[10px] font-medium tracking-wider text-[#6b6b7b] md:inline-block">
+          {tuya?.deviceId ? `DEV-${tuya.deviceId.substring(0, 6)}` : "NO DEVICE"}
         </span>
-        <IconButton><Bell className="h-4 w-4" /></IconButton>
-        <IconButton><Settings className="h-4 w-4" /></IconButton>
+        <IconButton><Bell className="h-3.5 w-3.5" /></IconButton>
+        <IconButton><Settings className="h-3.5 w-3.5" /></IconButton>
       </div>
     </motion.header>
   );
 }
 
-function StatusPill({ children }: { children: React.ReactNode }) {
+function StatusLine({ tuya }: { tuya?: TuyaStatus }) {
+  if (tuya?.source === "tuya") {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="absolute inline-flex h-full w-full animate-ping-subtle rounded-full bg-[#2dd4bf] opacity-75" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#2dd4bf]" />
+        </span>
+        <Wifi className="h-3 w-3 text-[#2dd4bf]" />
+        <span className="text-[11px] font-medium text-[#2dd4bf]">LIVE</span>
+      </div>
+    );
+  }
+  if (tuya?.source === "offline") {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#dc4446]" />
+        <Wifi className="h-3 w-3 text-[#dc4446]" />
+        <span className="text-[11px] font-medium text-[#dc4446]">OFFLINE</span>
+      </div>
+    );
+  }
   return (
-    <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 backdrop-blur">
-      {children}
+    <div className="flex items-center gap-2">
+      <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#d4a032]" />
+      <Wifi className="h-3 w-3 text-[#d4a032]" />
+      <span className="text-[11px] font-medium text-[#d4a032]">SIMULATION</span>
     </div>
   );
 }
 
 function IconButton({ children }: { children: React.ReactNode }) {
   return (
-    <button className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-slate-200 transition-all hover:border-amber-300/30 hover:bg-white/[0.08] hover:text-amber-200 hover:shadow-[0_0_24px_rgba(250,204,21,0.18)]">
+    <button className="grid h-7 w-7 place-items-center rounded-md border border-white/[0.06] bg-white/[0.02] text-[#6b6b7b] transition-all hover:border-white/[0.12] hover:bg-white/[0.04] hover:text-[#e2e2e8]">
       {children}
     </button>
   );
