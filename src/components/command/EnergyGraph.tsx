@@ -69,6 +69,10 @@ export function EnergyGraph({ data }: { data: SeriesPoint[] }) {
                 fontWeight: 600,
               }}
               labelFormatter={(v) => `${v.toString().padStart(2, "0")}:00`}
+              formatter={(value: number, name: string) => {
+                const units: Record<string, string> = { solar: "kW", load: "kW", battery: "%" };
+                return [`${Number(value).toFixed(2)} ${units[name] || ""}`, name.toUpperCase()];
+              }}
             />
             <Area type="monotone" dataKey="solar" stroke="#d4a032" strokeWidth={2} fill="url(#gSolar)" />
             <Area type="monotone" dataKey="load" stroke="#60a5fa" strokeWidth={1.5} fill="url(#gLoad)" />

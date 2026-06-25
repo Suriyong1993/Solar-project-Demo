@@ -82,7 +82,7 @@ function Index() {
           stats: [
             { label: "Real-time", value: `${m.loadKw.toFixed(2)} kW` },
             { label: "Mode", value: m.loadKw < 1.5 ? "ECONOMY" : "NORMAL" },
-            { label: "Frequency", value: "—" },
+            { label: "Phase", value: "SINGLE" },
             { label: "Health", value: "STABLE" },
           ],
         };

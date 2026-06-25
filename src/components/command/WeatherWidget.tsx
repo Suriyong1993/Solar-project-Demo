@@ -1,9 +1,37 @@
 import { motion } from "framer-motion";
 import { Sunrise, Sunset, Zap } from "lucide-react";
+import { useMemo } from "react";
 
 type WeatherWidgetProps = {
   peakKw: number;
 };
+
+/** Calculate sunrise/sunset using solar position algorithm */
+function calcSunTimes(): { sunriseH: number; sunriseM: number; sunsetH: number; sunsetM: number } {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), 0, 0);
+  const diff = now.getTime() - start.getTime();
+  const dayOfYear = Math.floor(diff / 86400000);
+  // Thailand latitude ~13.7°N, convert to radians
+  const lat = (13.7 * Math.PI) / 180;
+  // Solar declination
+  const decl = (23.45 * Math.PI / 180) * Math.sin((2 * Math.PI / 365) * (284 + dayOfYear));
+  // Hour angle at sunrise (radians)
+  const cosHa = -Math.tan(lat) * Math.tan(decl);
+  // Clamp to valid range (polar night / midnight sun)
+  const ha = Math.acos(Math.max(-1, Math.min(1, cosHa)));
+  // Convert hour angle to hours
+  const haHours = ha * (180 / Math.PI) / 15;
+  // Solar noon at UTC+7 for ~100.5°E (central Thailand)
+  const noon = 12 - (100.5 / 15) + 7; // ≈ 12 + 7 - 6.7 = 12.3
+  const sunrise = noon - haHours;
+  const sunset = noon + haHours;
+  const sunriseH = Math.floor(sunrise);
+  const sunriseM = Math.floor((sunrise - sunriseH) * 60);
+  const sunsetH = Math.floor(sunset);
+  const sunsetM = Math.floor((sunset - sunsetH) * 60);
+  return { sunriseH, sunriseM, sunsetH, sunsetM };
+}
 
 export function WeatherWidget({ peakKw }: WeatherWidgetProps) {
   const peakW = Math.round(peakKw * 1000);
@@ -11,10 +39,8 @@ export function WeatherWidget({ peakKw }: WeatherWidgetProps) {
   const currentHour = now.getHours();
   const currentMin = now.getMinutes();
 
-  const sunriseH = 6;
-  const sunriseM = 12;
-  const sunsetH = 18;
-  const sunsetM = 42;
+  const sunTimes = useMemo(() => calcSunTimes(), []);
+  const { sunriseH, sunriseM, sunsetH, sunsetM } = sunTimes;
 
   const totalMinutesNow = currentHour * 60 + currentMin;
   const sunsetTotal = sunsetH * 60 + sunsetM;
@@ -42,7 +68,7 @@ export function WeatherWidget({ peakKw }: WeatherWidgetProps) {
       <div className="mb-1 flex items-center gap-2">
         <span className="h-1.5 w-1.5 rounded-full" style={{ background: "#d4a032" }} />
         <span className="text-[9px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}>
-          CONDITIONS
+          DAYLIGHT
         </span>
       </div>
       <div className="text-lg font-bold" style={{ color: "#e2e2e8", fontFamily: "Chakra Petch" }}>
