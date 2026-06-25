@@ -1,33 +1,13 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 
-type Accent = "solar" | "sky" | "leaf" | "violet";
+type Accent = "amber" | "teal" | "warm" | "cool";
 
-const accentMap: Record<Accent, { glow: string; ring: string; text: string; chip: string }> = {
-  solar: {
-    glow: "0 0 50px rgba(250,204,21,0.18)",
-    ring: "rgba(250,204,21,0.35)",
-    text: "text-amber-200",
-    chip: "from-amber-300/30 to-amber-500/10",
-  },
-  sky: {
-    glow: "0 0 50px rgba(56,189,248,0.18)",
-    ring: "rgba(56,189,248,0.35)",
-    text: "text-sky-200",
-    chip: "from-sky-300/30 to-sky-500/10",
-  },
-  leaf: {
-    glow: "0 0 50px rgba(16,185,129,0.18)",
-    ring: "rgba(16,185,129,0.35)",
-    text: "text-emerald-200",
-    chip: "from-emerald-300/30 to-emerald-500/10",
-  },
-  violet: {
-    glow: "0 0 50px rgba(139,92,246,0.18)",
-    ring: "rgba(139,92,246,0.35)",
-    text: "text-violet-200",
-    chip: "from-violet-300/30 to-violet-500/10",
-  },
+const accentMap: Record<Accent, { color: string; dimColor: string }> = {
+  amber: { color: "#d4a032", dimColor: "#8b6914" },
+  teal: { color: "#2dd4bf", dimColor: "#0f766e" },
+  warm: { color: "#e8a84a", dimColor: "#a07020" },
+  cool: { color: "#60a5fa", dimColor: "#1e40af" },
 };
 
 export function MetricCard({
@@ -48,30 +28,58 @@ export function MetricCard({
   index?: number;
 }) {
   const a = accentMap[accent];
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.8, delay: 0.2 + index * 0.08, ease: [0.22, 1, 0.36, 1] }}
-      whileHover={{ y: -6, transition: { duration: 0.4 } }}
-      className="glass group relative overflow-hidden rounded-2xl p-4"
-      style={{ boxShadow: `0 20px 60px rgba(0,0,0,0.35), ${a.glow}` }}
+      transition={{ duration: 0.5, delay: 0.1 + index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+      whileHover={{ y: -2, transition: { duration: 0.15 } }}
+      className="panel group relative overflow-hidden rounded-lg p-4"
     >
-      <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full opacity-30 blur-3xl" style={{ background: a.ring }} />
-      <div className="flex items-center justify-between">
-        <div className={`grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br ${a.chip} ${a.text}`}>
-          {icon}
+      {/* Top: icon + status */}
+      <div className="flex items-start justify-between">
+        <div
+          className="grid h-8 w-8 place-items-center rounded-md border"
+          style={{
+            borderColor: `${a.color}20`,
+            backgroundColor: `${a.color}08`,
+          }}
+        >
+          <span style={{ color: a.color }}>{icon}</span>
         </div>
         {delta && (
-          <span className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 font-display text-[10px] font-medium tracking-wider text-slate-300">
+          <span
+            className="rounded-full border border-white/[0.06] bg-white/[0.02] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
+            style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
+          >
             {delta}
           </span>
         )}
       </div>
-      <div className="mt-3 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-400">{label}</div>
-      <div className="mt-1 flex items-baseline gap-1.5">
-        <span className={`font-display text-3xl font-semibold tabular-nums ${a.text}`}>{value}</span>
-        <span className="text-xs font-medium text-slate-400">{unit}</span>
+
+      {/* Label */}
+      <div
+        className="mt-3 text-[9px] font-semibold uppercase tracking-[0.2em]"
+        style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
+      >
+        {label}
+      </div>
+
+      {/* Value */}
+      <div className="mt-1.5 flex items-baseline gap-2">
+        <span
+          className="text-[2.5rem] font-bold tabular-nums leading-none"
+          style={{ color: a.color, fontFamily: "JetBrains Mono", letterSpacing: "-0.02em" }}
+        >
+          {value}
+        </span>
+        <span
+          className="text-xs font-medium uppercase tracking-wider"
+          style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
+        >
+          {unit}
+        </span>
       </div>
     </motion.div>
   );

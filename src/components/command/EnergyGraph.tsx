@@ -5,64 +5,74 @@ import type { SeriesPoint } from "@/lib/command-data";
 export function EnergyGraph({ data }: { data: SeriesPoint[] }) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-      className="glass relative overflow-hidden rounded-3xl p-6"
-      style={{ boxShadow: "0 30px 90px rgba(0,0,0,0.45)" }}
+      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+      className="panel relative overflow-hidden rounded-lg p-5"
     >
-      <div className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-amber-400/10 blur-3xl" />
-      <div className="pointer-events-none absolute -right-24 -bottom-20 h-72 w-72 rounded-full bg-sky-400/10 blur-3xl" />
-
-      <div className="flex flex-wrap items-end justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-400">24-hour intelligence</div>
-          <div className="mt-1 font-display text-2xl font-semibold text-white">Energy Flow Telemetry</div>
+          <div className="text-[9px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#d4a032", fontFamily: "JetBrains Mono" }}>
+            TELEMETRY_24H
+          </div>
+          <div className="mt-1 text-lg font-bold" style={{ color: "#e2e2e8", fontFamily: "Chakra Petch" }}>
+            ENERGY FLOW
+          </div>
         </div>
-        <div className="flex flex-wrap gap-4 text-[11px]">
-          <Legend color="#facc15" label="Solar Production" />
-          <Legend color="#38bdf8" label="Consumption" />
-          <Legend color="#10b981" label="Battery SOC" />
+        <div className="flex flex-wrap gap-4 text-[10px] font-medium">
+          <Legend color="#d4a032" label="SOLAR" />
+          <Legend color="#60a5fa" label="LOAD" />
+          <Legend color="#2dd4bf" label="SOC" />
         </div>
       </div>
 
-      <div className="mt-6 h-[320px] w-full">
+      <div className="mt-5 h-[240px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 8, left: -16, bottom: 0 }}>
+          <AreaChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
             <defs>
               <linearGradient id="gSolar" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#facc15" stopOpacity={0.55} />
-                <stop offset="100%" stopColor="#facc15" stopOpacity={0} />
+                <stop offset="0%" stopColor="#d4a032" stopOpacity={0.4} />
+                <stop offset="100%" stopColor="#d4a032" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="gLoad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#38bdf8" stopOpacity={0.45} />
-                <stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+                <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.35} />
+                <stop offset="100%" stopColor="#60a5fa" stopOpacity={0} />
               </linearGradient>
               <linearGradient id="gBat" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity={0.4} />
-                <stop offset="100%" stopColor="#10b981" stopOpacity={0} />
+                <stop offset="0%" stopColor="#2dd4bf" stopOpacity={0.3} />
+                <stop offset="100%" stopColor="#2dd4bf" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
-            <XAxis dataKey="t" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}:00`} />
-            <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip
-              cursor={{ stroke: "rgba(250,204,21,0.4)", strokeWidth: 1, strokeDasharray: "4 4" }}
-              contentStyle={{
-                background: "rgba(15,23,42,0.92)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                borderRadius: 12,
-                boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
-                color: "#f8fafc",
-                fontFamily: "Space Grotesk, Inter",
-                fontSize: 12,
-              }}
-              labelFormatter={(v) => `${v}:00`}
+            <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" vertical={false} />
+            <XAxis
+              dataKey="t"
+              tick={{ fill: "#3a3a4a", fontSize: 9, fontFamily: "JetBrains Mono" }}
+              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
+              tickLine={false}
+              tickFormatter={(v) => `${v.toString().padStart(2, "0")}:00`}
             />
-            <Area type="monotone" dataKey="solar" stroke="#facc15" strokeWidth={2.4} fill="url(#gSolar)" />
-            <Area type="monotone" dataKey="load" stroke="#38bdf8" strokeWidth={2.2} fill="url(#gLoad)" />
-            <Area type="monotone" dataKey="battery" stroke="#10b981" strokeWidth={1.8} fill="url(#gBat)" yAxisId={0} />
+            <YAxis
+              tick={{ fill: "#3a3a4a", fontSize: 9, fontFamily: "JetBrains Mono" }}
+              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
+              tickLine={false}
+            />
+            <Tooltip
+              cursor={{ stroke: "#d4a032", strokeWidth: 1, strokeDasharray: "4 4" }}
+              contentStyle={{
+                background: "rgba(12,12,18,0.95)",
+                border: "1px solid rgba(212,160,50,0.2)",
+                borderRadius: 8,
+                color: "#e2e2e8",
+                fontFamily: "JetBrains Mono",
+                fontSize: 10,
+                fontWeight: 600,
+              }}
+              labelFormatter={(v) => `${v.toString().padStart(2, "0")}:00`}
+            />
+            <Area type="monotone" dataKey="solar" stroke="#d4a032" strokeWidth={2} fill="url(#gSolar)" />
+            <Area type="monotone" dataKey="load" stroke="#60a5fa" strokeWidth={1.5} fill="url(#gLoad)" />
+            <Area type="monotone" dataKey="battery" stroke="#2dd4bf" strokeWidth={1.5} fill="url(#gBat)" yAxisId={0} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -72,8 +82,8 @@ export function EnergyGraph({ data }: { data: SeriesPoint[] }) {
 
 function Legend({ color, label }: { color: string; label: string }) {
   return (
-    <span className="flex items-center gap-1.5 text-slate-300">
-      <span className="h-2 w-2 rounded-full" style={{ background: color, boxShadow: `0 0 10px ${color}` }} />
+    <span className="flex items-center gap-1.5" style={{ color, fontFamily: "JetBrains Mono" }}>
+      <span className="h-2 w-2 rounded-full" style={{ background: color }} />
       {label}
     </span>
   );
