@@ -48,14 +48,14 @@ export function MetricCard({
         >
           <span style={{ color: a.color }}>{icon}</span>
         </div>
-        {delta && (
+        {delta ? (
           <span
             className="rounded-full border border-white/[0.06] bg-white/[0.02] px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider"
             style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
           >
             {delta}
           </span>
-        )}
+        ) : null}
       </div>
 
       {/* Label */}

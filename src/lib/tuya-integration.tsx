@@ -23,7 +23,7 @@
  *     TUYA_DEVICE_ID=your_device_id
  */
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { getTuyaConfig } from "./tuya-config";
 import { pullTuyaMetrics } from "./tuya-client";
 import { useLiveMetrics as useSimulatedMetrics, type Metrics } from "./command-data";
@@ -38,6 +38,19 @@ export type TuyaStatus = {
   lastSync: number;
 };
 
+const INITIAL_TUYA_STATUS: TuyaStatus = {
+  source: "simulation",
+  systemVoltage: 0,
+  mpptEfficiency: 0,
+  deviceId: "",
+  lastSync: 0,
+};
+
+const CONNECTING_TUYA_STATUS: TuyaStatus = {
+  ...INITIAL_TUYA_STATUS,
+  source: "connecting",
+};
+
 /**
  * useLiveMetrics — เลือก data source อัตโนมัติ
  * 
@@ -47,20 +60,16 @@ export type TuyaStatus = {
  */
 export function useLiveMetrics(): Metrics & { tuya?: TuyaStatus } {
   const sim = useSimulatedMetrics();
+  const hasTuya = !!getTuyaConfig();
   const [tuyaMetrics, setTuyaMetrics] = useState<{
     solarKw: number;
     batteryPct: number;
     loadKw: number;
     batteryFlowKw: number;
   } | null>(null);
-  const hasTuya = !!getTuyaConfig();
-  const [tuyaStatus, setTuyaStatus] = useState<TuyaStatus>({
-    source: hasTuya ? "connecting" : "simulation",
-    systemVoltage: 0,
-    mpptEfficiency: 0,
-    deviceId: "",
-    lastSync: 0,
-  });
+  const [tuyaStatus, setTuyaStatus] = useState<TuyaStatus>(() =>
+    hasTuya ? CONNECTING_TUYA_STATUS : INITIAL_TUYA_STATUS,
+  );
   const mounted = useRef(true);
 
   const poll = useCallback(async () => {
@@ -115,18 +124,22 @@ export function useLiveMetrics(): Metrics & { tuya?: TuyaStatus } {
     };
   }, [hasTuya, poll]);
 
-  if (tuyaMetrics) {
+  const merged = useMemo(() => {
+    if (!tuyaMetrics) {
+      return { ...sim, tuya: tuyaStatus };
+    }
+    const isCharging = tuyaMetrics.batteryFlowKw >= 0;
     return {
       ...sim,
       ...tuyaMetrics,
       batteryFlowKw: tuyaMetrics.batteryFlowKw,
-      isCharging: tuyaMetrics.batteryFlowKw >= 0,
+      isCharging,
       batteryNetW: Math.abs(Math.round(tuyaMetrics.batteryFlowKw * 1000)),
       tuya: tuyaStatus,
     };
-  }
+  }, [sim, tuyaMetrics, tuyaStatus]);
 
-  return { ...sim, tuya: tuyaStatus };
+  return merged;
 }
 
 export { type Metrics } from "./command-data";

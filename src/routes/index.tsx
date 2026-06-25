@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { motion, AnimatePresence } from "framer-motion";
 import { Battery, Home, Sun, Zap, Cpu, TrendingUp, TrendingDown } from "lucide-react";
+import { useState, useMemo, lazy, Suspense, type ComponentType } from "react";
 import { AtmosphereBackground } from "@/components/command/AtmosphereBackground";
 import { TopNav } from "@/components/command/TopNav";
 import { MetricCard } from "@/components/command/MetricCard";
-import { EnergyScene } from "@/components/command/EnergyScene";
+
+const EnergyScene = lazy(() => import("@/components/command/EnergyScene").then(m => ({ default: m.EnergyScene as unknown as ComponentType<any> })));
 import { BatteryWidget } from "@/components/command/BatteryWidget";
 import { EnergyGraph } from "@/components/command/EnergyGraph";
-import { useState } from "react";
 import { WeatherWidget } from "@/components/command/WeatherWidget";
 import { InsightsStrip, type InsightsData } from "@/components/command/InsightsStrip";
 import { useLiveMetrics } from "@/lib/tuya-integration";
@@ -104,7 +105,7 @@ function Index() {
     }
   };
 
-  const selectedDetails = getSelectedNodeDetails();
+  const selectedDetails = useMemo(getSelectedNodeDetails, [selectedNode, m.solarKw, m.batteryPct, m.loadKw, m.batteryNetW, m.batteryFlowKw, m.isCharging, m.peakKw, m.runtimeHours, m.tuya]);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden text-[#e2e2e8]">
@@ -216,20 +217,22 @@ function Index() {
       {/* Main — 3D scene + inspector */}
       <section className="mx-auto max-w-[1400px] px-4 py-4 md:px-8">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_0.7fr]">
-          {/* 3D Scene */}
+          {/* 3D Scene — lazy loaded to reduce initial bundle */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
           >
-            <EnergyScene
-              solarKw={m.solarKw}
-              batteryPct={m.batteryPct}
-              loadKw={m.loadKw}
-              batteryFlowKw={m.batteryFlowKw}
-              selectedNode={selectedNode}
-              onSelectNode={setSelectedNode}
-            />
+            <Suspense fallback={<div className="h-[400px] w-full rounded-lg border border-white/[0.06] bg-[#050816] md:h-[560px]" />}>
+              <EnergyScene
+                solarKw={m.solarKw}
+                batteryPct={m.batteryPct}
+                loadKw={m.loadKw}
+                batteryFlowKw={m.batteryFlowKw}
+                selectedNode={selectedNode}
+                onSelectNode={setSelectedNode}
+              />
+            </Suspense>
           </motion.div>
 
           {/* Inspector panel */}
