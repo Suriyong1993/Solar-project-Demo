@@ -4,14 +4,29 @@ import { motion } from "framer-motion";
 
 import type { TuyaStatus } from "@/lib/tuya-integration";
 
-export function TopNav({ tuya, onOpenSpecs, onOpenAlerts, onOpenSettings }: { tuya?: TuyaStatus; onOpenSpecs: () => void; onOpenAlerts?: () => void; onOpenSettings?: () => void }) {
+export function TopNav({
+  tuya,
+  onOpenSpecs,
+  onOpenAlerts,
+  onOpenSettings,
+}: {
+  tuya?: TuyaStatus;
+  onOpenSpecs: () => void;
+  onOpenAlerts?: () => void;
+  onOpenSettings?: () => void;
+}) {
   const [time, setTime] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const t = time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  const t = time.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  });
 
   return (
     <motion.header
@@ -26,8 +41,12 @@ export function TopNav({ tuya, onOpenSpecs, onOpenAlerts, onOpenSettings }: { tu
           <Sun className="h-4 w-4 text-[#d4a032]" strokeWidth={2} />
         </div>
         <div className="hidden flex-col leading-tight sm:flex">
-          <span className="text-[13px] font-semibold tracking-tight text-[#e2e2e8]">SOLAR MONITOR</span>
-          <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-[#6b6b7b]">MPPT-6096 Telemetry</span>
+          <span className="text-[13px] font-semibold tracking-tight text-[#e2e2e8]">
+            SOLAR MONITOR
+          </span>
+          <span className="text-[9px] font-medium uppercase tracking-[0.2em] text-[#6b6b7b]">
+            MPPT-6096 Telemetry
+          </span>
         </div>
       </div>
 
@@ -36,7 +55,9 @@ export function TopNav({ tuya, onOpenSpecs, onOpenAlerts, onOpenSettings }: { tu
         <StatusLine tuya={tuya} />
         <div className="flex items-center gap-1.5">
           <Thermometer className="h-3 w-3 text-[#6b6b7b]" />
-          <span className="text-[11px] font-medium text-[#6b6b7b]">{tuya?.source === "tuya" ? "—" : "—"}</span>
+          <span className="text-[11px] font-medium text-[#6b6b7b]">
+            {tuya?.source === "tuya" ? "—" : "—"}
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] font-mono tabular-nums font-medium text-[#d4a032]">{t}</span>
@@ -56,8 +77,12 @@ export function TopNav({ tuya, onOpenSpecs, onOpenAlerts, onOpenSettings }: { tu
         <span className="hidden rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 font-mono text-[10px] font-medium tracking-wider text-[#6b6b7b] md:inline-block">
           {tuya?.deviceId ? `DEV-${tuya.deviceId.substring(0, 6)}` : "SIM MODE"}
         </span>
-        <IconButton onClick={onOpenAlerts}><Bell className="h-3.5 w-3.5" /></IconButton>
-        <IconButton onClick={onOpenSettings}><Settings className="h-3.5 w-3.5" /></IconButton>
+        <IconButton onClick={onOpenAlerts}>
+          <Bell className="h-3.5 w-3.5" />
+        </IconButton>
+        <IconButton onClick={onOpenSettings}>
+          <Settings className="h-3.5 w-3.5" />
+        </IconButton>
       </div>
     </motion.header>
   );

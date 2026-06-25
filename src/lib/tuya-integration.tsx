@@ -1,23 +1,23 @@
 /**
  * Tuya + Simulation Integration Layer
  * =====================================
- * 
+ *
  * ตัวเชื่อมระหว่าง Tuya IoT API และ Simulation (useLiveMetrics)
- * 
+ *
  * การทำงาน:
  *   1. ถ้ามี Environment Variables (TUYA_CLIENT_ID ฯลฯ) → เรียก Tuya API จริง
  *   2. ถ้าไม่มี → ใช้ Simulation (fallback)
- * 
+ *
  * วิธีตั้งค่า:
  *   สร้างไฟล์ `.env` ในโฟลเดอร์ radiant-command-core:
- *   
+ *
  *     VITE_TUYA_CLIENT_ID=your_access_id
  *     VITE_TUYA_CLIENT_SECRET=your_access_secret
  *     VITE_TUYA_DEVICE_ID=your_device_id
  *     VITE_TUYA_ENDPOINT=https://openapi.tuyaus.com
- *   
+ *
  *   หรือใช้ server-side environment variables:
- *   
+ *
  *     TUYA_CLIENT_ID=your_access_id
  *     TUYA_CLIENT_SECRET=your_access_secret
  *     TUYA_DEVICE_ID=your_device_id
@@ -53,7 +53,7 @@ const CONNECTING_TUYA_STATUS: TuyaStatus = {
 
 /**
  * useLiveMetrics — เลือก data source อัตโนมัติ
- * 
+ *
  * - ถ้ามี Tuya credentials → Poll API จริงทุกๆ 10 วินาที
  * - ถ้า Tuya offline → แสดง simulation + offline status
  * - ถ้าไม่มี credentials → ใช้ simulation อย่างเดียว

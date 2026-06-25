@@ -78,10 +78,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Solar Monitor — MPPT Telemetry" },
-      { name: "description", content: "Real-time solar energy monitoring and telemetry dashboard." },
+      {
+        name: "description",
+        content: "Real-time solar energy monitoring and telemetry dashboard.",
+      },
       { name: "author", content: "Solar Monitor" },
       { property: "og:title", content: "Solar Monitor — MPPT Telemetry" },
-      { property: "og:description", content: "Real-time solar energy monitoring and telemetry dashboard." },
+      {
+        property: "og:description",
+        content: "Real-time solar energy monitoring and telemetry dashboard.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],

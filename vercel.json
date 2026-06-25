@@ -2,6 +2,5 @@
   "framework": null,
   "buildCommand": "npx bun@1.3.14 install && npx bun@1.3.14 run build",
   "installCommand": "npx bun@1.3.14 install",
-  "devCommand": "npx bun@1.3.14 run dev",
-  "nodeVersion": "22.x"
+  "devCommand": "npx bun@1.3.14 run dev"
 }

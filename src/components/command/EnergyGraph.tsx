@@ -1,5 +1,13 @@
 import { motion } from "framer-motion";
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 import type { SeriesPoint } from "@/lib/command-data";
 
 export function EnergyGraph({ data }: { data: SeriesPoint[] }) {
@@ -13,10 +21,16 @@ export function EnergyGraph({ data }: { data: SeriesPoint[] }) {
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <div className="text-[9px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#d4a032", fontFamily: "JetBrains Mono" }}>
+          <div
+            className="text-[9px] font-semibold uppercase tracking-[0.2em]"
+            style={{ color: "#d4a032", fontFamily: "JetBrains Mono" }}
+          >
             TELEMETRY_24H
           </div>
-          <div className="mt-1 text-lg font-bold" style={{ color: "#e2e2e8", fontFamily: "Chakra Petch" }}>
+          <div
+            className="mt-1 text-lg font-bold"
+            style={{ color: "#e2e2e8", fontFamily: "Chakra Petch" }}
+          >
             ENERGY FLOW
           </div>
         </div>
@@ -74,9 +88,28 @@ export function EnergyGraph({ data }: { data: SeriesPoint[] }) {
                 return [`${Number(value).toFixed(2)} ${units[name] || ""}`, name.toUpperCase()];
               }}
             />
-            <Area type="monotone" dataKey="solar" stroke="#d4a032" strokeWidth={2} fill="url(#gSolar)" />
-            <Area type="monotone" dataKey="load" stroke="#60a5fa" strokeWidth={1.5} fill="url(#gLoad)" />
-            <Area type="monotone" dataKey="battery" stroke="#2dd4bf" strokeWidth={1.5} fill="url(#gBat)" yAxisId={0} />
+            <Area
+              type="monotone"
+              dataKey="solar"
+              stroke="#d4a032"
+              strokeWidth={2}
+              fill="url(#gSolar)"
+            />
+            <Area
+              type="monotone"
+              dataKey="load"
+              stroke="#60a5fa"
+              strokeWidth={1.5}
+              fill="url(#gLoad)"
+            />
+            <Area
+              type="monotone"
+              dataKey="battery"
+              stroke="#2dd4bf"
+              strokeWidth={1.5}
+              fill="url(#gBat)"
+              yAxisId={0}
+            />
           </AreaChart>
         </ResponsiveContainer>
       </div>

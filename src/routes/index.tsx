@@ -6,7 +6,11 @@ import { AtmosphereBackground } from "@/components/command/AtmosphereBackground"
 import { TopNav } from "@/components/command/TopNav";
 import { MetricCard } from "@/components/command/MetricCard";
 
-const EnergyScene = lazy(() => import("@/components/command/EnergyScene").then(m => ({ default: m.EnergyScene as unknown as ComponentType<any> })));
+const EnergyScene = lazy(() =>
+  import("@/components/command/EnergyScene").then((m) => ({
+    default: m.EnergyScene as unknown as ComponentType<Record<string, unknown>>,
+  })),
+);
 import { BatteryWidget } from "@/components/command/BatteryWidget";
 import { EnergyGraph } from "@/components/command/EnergyGraph";
 import { WeatherWidget } from "@/components/command/WeatherWidget";
@@ -20,7 +24,10 @@ export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
       { title: "Solar Monitor — MPPT Telemetry" },
-      { name: "description", content: "Real-time solar, battery, and grid telemetry dashboard with 3D visualization." },
+      {
+        name: "description",
+        content: "Real-time solar, battery, and grid telemetry dashboard with 3D visualization.",
+      },
     ],
   }),
   component: Index,
@@ -55,7 +62,10 @@ function Index() {
           stats: [
             { label: "Current Output", value: `${m.solarKw.toFixed(2)} kW` },
             { label: "Daily Peak", value: `${(m.peakKw * 1000).toFixed(0)} W` },
-            { label: "Efficiency", value: `${(m.solarKw > 0 ? (m.solarKw / 5.8) * 100 : 0).toFixed(1)}%` },
+            {
+              label: "Efficiency",
+              value: `${(m.solarKw > 0 ? (m.solarKw / 5.8) * 100 : 0).toFixed(1)}%`,
+            },
             { label: "Status", value: m.solarKw > 0.1 ? "GENERATING" : "STANDBY" },
           ],
         };
@@ -69,7 +79,10 @@ function Index() {
           stats: [
             { label: "State of Charge", value: `${m.batteryPct.toFixed(0)}%` },
             { label: "Net Power", value: `${m.isCharging ? "+" : "-"}${m.batteryNetW} W` },
-            { label: "Runtime", value: m.runtimeHours > 24 ? "24+ hrs" : `${m.runtimeHours.toFixed(1)} hrs` },
+            {
+              label: "Runtime",
+              value: m.runtimeHours > 24 ? "24+ hrs" : `${m.runtimeHours.toFixed(1)} hrs`,
+            },
             { label: "Temperature", value: "—" },
           ],
         };
@@ -96,7 +109,10 @@ function Index() {
           borderColor: "rgba(226,226,232,0.15)",
           textColor: "#e2e2e8",
           stats: [
-            { label: "Efficiency", value: m.tuya?.mpptEfficiency ? `${m.tuya.mpptEfficiency.toFixed(1)}%` : "—" },
+            {
+              label: "Efficiency",
+              value: m.tuya?.mpptEfficiency ? `${m.tuya.mpptEfficiency.toFixed(1)}%` : "—",
+            },
             { label: "Source", value: m.tuya?.source === "tuya" ? "Tuya IoT" : "Simulation" },
             { label: "CPU Load", value: "—" },
             { label: "Firmware", value: "—" },
@@ -105,7 +121,17 @@ function Index() {
     }
   };
 
-  const selectedDetails = useMemo(getSelectedNodeDetails, [selectedNode, m.solarKw, m.batteryPct, m.loadKw, m.batteryNetW, m.batteryFlowKw, m.isCharging, m.peakKw, m.runtimeHours, m.tuya]);
+  const selectedDetails = useMemo(getSelectedNodeDetails, [
+    selectedNode,
+    m.solarKw,
+    m.batteryPct,
+    m.loadKw,
+    m.batteryNetW,
+    m.isCharging,
+    m.peakKw,
+    m.runtimeHours,
+    m.tuya,
+  ]);
 
   return (
     <div className="relative min-h-screen overflow-x-hidden text-[#e2e2e8]">
@@ -204,7 +230,13 @@ function Index() {
           />
           <MetricCard
             index={3}
-            icon={m.isCharging ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+            icon={
+              m.isCharging ? (
+                <TrendingUp className="h-4 w-4" />
+              ) : (
+                <TrendingDown className="h-4 w-4" />
+              )
+            }
             label="Net Flow"
             value={`${m.isCharging ? "+" : "-"}${m.batteryNetW}`}
             unit="W"
@@ -223,7 +255,11 @@ function Index() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.8 }}
           >
-            <Suspense fallback={<div className="h-[400px] w-full rounded-lg border border-white/[0.06] bg-[#050816] md:h-[560px]" />}>
+            <Suspense
+              fallback={
+                <div className="h-[400px] w-full rounded-lg border border-white/[0.06] bg-[#050816] md:h-[560px]" />
+              }
+            >
               <EnergyScene
                 solarKw={m.solarKw}
                 batteryPct={m.batteryPct}
@@ -255,15 +291,24 @@ function Index() {
                         {selectedDetails.icon}
                       </div>
                       <div>
-                        <div className="text-xs font-bold tracking-wider" style={{ color: selectedDetails.textColor, fontFamily: "Chakra Petch" }}>
+                        <div
+                          className="text-xs font-bold tracking-wider"
+                          style={{ color: selectedDetails.textColor, fontFamily: "Chakra Petch" }}
+                        >
                           {selectedDetails.title}
                         </div>
-                        <div className="text-[9px] uppercase tracking-[0.15em]" style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}>
+                        <div
+                          className="text-[9px] uppercase tracking-[0.15em]"
+                          style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
+                        >
                           {selectedDetails.subtitle}
                         </div>
                       </div>
                     </div>
-                    <span className="text-[9px] border border-white/[0.06] rounded px-1.5 py-0.5 bg-white/[0.02] uppercase tracking-widest" style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}>
+                    <span
+                      className="text-[9px] border border-white/[0.06] rounded px-1.5 py-0.5 bg-white/[0.02] uppercase tracking-widest"
+                      style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
+                    >
                       LIVE
                     </span>
                   </div>
@@ -271,11 +316,20 @@ function Index() {
                   {/* Stats */}
                   <div className="space-y-2">
                     {selectedDetails.stats.map((stat, i) => (
-                      <div key={i} className="flex items-center justify-between rounded-md border border-white/[0.04] bg-white/[0.01] px-3 py-2.5">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}>
+                      <div
+                        key={i}
+                        className="flex items-center justify-between rounded-md border border-white/[0.04] bg-white/[0.01] px-3 py-2.5"
+                      >
+                        <span
+                          className="text-[10px] font-semibold uppercase tracking-wider"
+                          style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
+                        >
                           {stat.label}
                         </span>
-                        <span className="text-sm font-bold tabular-nums" style={{ color: selectedDetails.textColor, fontFamily: "JetBrains Mono" }}>
+                        <span
+                          className="text-sm font-bold tabular-nums"
+                          style={{ color: selectedDetails.textColor, fontFamily: "JetBrains Mono" }}
+                        >
                           {stat.value}
                         </span>
                       </div>
@@ -287,10 +341,30 @@ function Index() {
 
             {/* Node selector */}
             <div className="panel rounded-lg p-2 flex items-center justify-around">
-              <NodePill active={selectedNode === "solar"} onClick={() => setSelectedNode("solar")} color="#d4a032" label="SOLAR" />
-              <NodePill active={selectedNode === "controller"} onClick={() => setSelectedNode("controller")} color="#e2e2e8" label="MPPT" />
-              <NodePill active={selectedNode === "battery"} onClick={() => setSelectedNode("battery")} color="#2dd4bf" label="BATT" />
-              <NodePill active={selectedNode === "load"} onClick={() => setSelectedNode("load")} color="#60a5fa" label="LOAD" />
+              <NodePill
+                active={selectedNode === "solar"}
+                onClick={() => setSelectedNode("solar")}
+                color="#d4a032"
+                label="SOLAR"
+              />
+              <NodePill
+                active={selectedNode === "controller"}
+                onClick={() => setSelectedNode("controller")}
+                color="#e2e2e8"
+                label="MPPT"
+              />
+              <NodePill
+                active={selectedNode === "battery"}
+                onClick={() => setSelectedNode("battery")}
+                color="#2dd4bf"
+                label="BATT"
+              />
+              <NodePill
+                active={selectedNode === "load"}
+                onClick={() => setSelectedNode("load")}
+                color="#60a5fa"
+                label="LOAD"
+              />
             </div>
           </div>
         </div>
@@ -327,17 +401,29 @@ function Index() {
         className="mx-auto max-w-[1400px] px-4 pb-8 md:px-8"
       >
         <div className="panel flex flex-wrap items-center justify-between gap-3 rounded-lg px-5 py-3">
-          <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#2dd4bf", fontFamily: "JetBrains Mono" }}>
+          <span
+            className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.2em]"
+            style={{ color: "#2dd4bf", fontFamily: "JetBrains Mono" }}
+          >
             <span className="status-dot animate-ping-subtle" style={{ color: "#2dd4bf" }} />
             OPERATIONAL
           </span>
-          <span className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] md:inline" style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}>
+          <span
+            className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] md:inline"
+            style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
+          >
             MPPT · {m.tuya?.mpptEfficiency ? m.tuya.mpptEfficiency.toFixed(1) : "—"}% EFF
           </span>
-          <span className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] md:inline" style={{ color: "#2dd4bf", fontFamily: "JetBrains Mono" }}>
+          <span
+            className="hidden text-[10px] font-semibold uppercase tracking-[0.2em] md:inline"
+            style={{ color: "#2dd4bf", fontFamily: "JetBrains Mono" }}
+          >
             OFF-GRID · ACTIVE
           </span>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}>
+          <span
+            className="text-[10px] font-semibold uppercase tracking-[0.2em]"
+            style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
+          >
             v3.0 · WEBGL
           </span>
         </div>
@@ -346,7 +432,17 @@ function Index() {
   );
 }
 
-function NodePill({ active, onClick, color, label }: { active: boolean; onClick: () => void; color: string; label: string }) {
+function NodePill({
+  active,
+  onClick,
+  color,
+  label,
+}: {
+  active: boolean;
+  onClick: () => void;
+  color: string;
+  label: string;
+}) {
   return (
     <button
       onClick={onClick}

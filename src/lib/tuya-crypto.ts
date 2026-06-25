@@ -15,12 +15,9 @@ function getCrypto(): Crypto {
   if (typeof globalThis !== "undefined" && globalThis.crypto) {
     return globalThis.crypto;
   }
-  if (typeof process !== "undefined" && process.versions?.node) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { webcrypto } = require("crypto");
-    return webcrypto as Crypto;
-  }
-  throw new Error("[TuyaCrypto] No crypto implementation available");
+  throw new Error(
+    "[TuyaCrypto] No crypto implementation available — requires Node.js 19+ or a browser",
+  );
 }
 
 const encoder = new TextEncoder();

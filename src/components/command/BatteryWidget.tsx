@@ -9,7 +9,13 @@ type BatteryWidgetProps = {
   runtimeHours: number;
 };
 
-export function BatteryWidget({ batteryPct, isCharging, batteryNetW, todayKwh, runtimeHours }: BatteryWidgetProps) {
+export function BatteryWidget({
+  batteryPct,
+  isCharging,
+  batteryNetW,
+  todayKwh,
+  runtimeHours,
+}: BatteryWidgetProps) {
   const r = 130;
   const c = 2 * Math.PI * r;
   const offset = c * (1 - batteryPct / 100);
@@ -27,7 +33,10 @@ export function BatteryWidget({ batteryPct, isCharging, batteryNetW, todayKwh, r
     >
       {/* Title */}
       <div className="absolute top-4 left-5">
-        <div className="text-[9px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}>
+        <div
+          className="text-[9px] font-semibold uppercase tracking-[0.2em]"
+          style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
+        >
           BATTERY STATE
         </div>
       </div>
@@ -42,7 +51,14 @@ export function BatteryWidget({ batteryPct, isCharging, batteryNetW, todayKwh, r
               <stop offset="100%" stopColor={isCharging ? "#2dd4bf" : "#dc4446"} />
             </linearGradient>
           </defs>
-          <circle cx="150" cy="150" r={r} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="16" />
+          <circle
+            cx="150"
+            cy="150"
+            r={r}
+            fill="none"
+            stroke="rgba(255,255,255,0.04)"
+            strokeWidth="16"
+          />
           <circle
             cx="150"
             cy="150"
@@ -71,14 +87,24 @@ export function BatteryWidget({ batteryPct, isCharging, batteryNetW, todayKwh, r
         {/* Center readout */}
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <Battery className="h-8 w-8" style={{ color: accent }} strokeWidth={2} />
-          <div className="mt-2 text-7xl font-bold tabular-nums leading-none" style={{ color: accent, fontFamily: "JetBrains Mono", letterSpacing: "-0.02em" }}>
+          <div
+            className="mt-2 text-7xl font-bold tabular-nums leading-none"
+            style={{ color: accent, fontFamily: "JetBrains Mono", letterSpacing: "-0.02em" }}
+          >
             {batteryPct.toFixed(0)}
           </div>
-          <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}>
+          <div
+            className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em]"
+            style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
+          >
             {isCharging ? "CHARGING" : "DISCHARGING"}
           </div>
-          <div className="mt-2 text-sm font-semibold" style={{ color: accent, fontFamily: "JetBrains Mono" }}>
-            {isCharging ? "+" : "-"}{batteryNetW}W
+          <div
+            className="mt-2 text-sm font-semibold"
+            style={{ color: accent, fontFamily: "JetBrains Mono" }}
+          >
+            {isCharging ? "+" : "-"}
+            {batteryNetW}W
           </div>
         </div>
       </div>
@@ -96,7 +122,10 @@ export function BatteryWidget({ batteryPct, isCharging, batteryNetW, todayKwh, r
 function MiniStat({ label, value, color }: { label: string; value: string; color: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-md border border-white/[0.04] bg-white/[0.01] py-2.5">
-      <div className="text-[9px] font-semibold uppercase tracking-[0.15em]" style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}>
+      <div
+        className="text-[9px] font-semibold uppercase tracking-[0.15em]"
+        style={{ color: "#6b6b7b", fontFamily: "JetBrains Mono" }}
+      >
         {label}
       </div>
       <div className="mt-0.5 text-base font-bold" style={{ color, fontFamily: "JetBrains Mono" }}>

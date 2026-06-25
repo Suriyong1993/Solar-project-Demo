@@ -32,7 +32,10 @@ export function EnergyScene({
         <div className="absolute bottom-3 right-3 h-3 w-3 border-b border-r border-[#d4a032]/30" />
 
         {/* Top labels */}
-        <div className="absolute top-3 left-5 text-[8px] font-semibold uppercase tracking-[0.2em]" style={{ color: "#3a3a4a", fontFamily: "JetBrains Mono" }}>
+        <div
+          className="absolute top-3 left-5 text-[8px] font-semibold uppercase tracking-[0.2em]"
+          style={{ color: "#3a3a4a", fontFamily: "JetBrains Mono" }}
+        >
           [ 3D TELEMETRY ]
         </div>
         <div className="absolute top-3 right-5 flex items-center gap-1.5">
@@ -40,13 +43,19 @@ export function EnergyScene({
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#2dd4bf] opacity-50" />
             <span className="relative inline-flex h-1 w-1 rounded-full bg-[#2dd4bf]" />
           </span>
-          <span className="text-[8px] font-semibold uppercase tracking-wider" style={{ color: "#2dd4bf", fontFamily: "JetBrains Mono" }}>
+          <span
+            className="text-[8px] font-semibold uppercase tracking-wider"
+            style={{ color: "#2dd4bf", fontFamily: "JetBrains Mono" }}
+          >
             RENDERING
           </span>
         </div>
 
         {/* Bottom hint */}
-        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[8px] font-semibold uppercase tracking-[0.15em]" style={{ color: "#3a3a4a", fontFamily: "JetBrains Mono" }}>
+        <div
+          className="absolute bottom-3 left-1/2 -translate-x-1/2 text-[8px] font-semibold uppercase tracking-[0.15em]"
+          style={{ color: "#3a3a4a", fontFamily: "JetBrains Mono" }}
+        >
           DRAG · ROTATE · SCROLL · ZOOM · CLICK · INSPECT
         </div>
       </div>
@@ -129,7 +138,12 @@ function Scene({
 
       {/* Core orb */}
       <Float speed={1.2} rotationIntensity={0.25} floatIntensity={0.4}>
-        <group onClick={(e) => { e.stopPropagation(); onSelectNode("controller"); }}>
+        <group
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelectNode("controller");
+          }}
+        >
           <ControllerOrb
             solarKw={solarKw}
             batteryPct={batteryPct}
@@ -139,35 +153,99 @@ function Scene({
       </Float>
 
       {/* Solar */}
-      <group onClick={(e) => { e.stopPropagation(); onSelectNode("solar"); }}>
+      <group
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectNode("solar");
+        }}
+      >
         <EnergySun position={POS.sun} intensity={solarKw} isSelected={selectedNode === "solar"} />
       </group>
 
       {/* Battery */}
-      <group onClick={(e) => { e.stopPropagation(); onSelectNode("battery"); }}>
-        <BatteryCell position={POS.battery} pct={batteryPct} charging={charging} isSelected={selectedNode === "battery"} />
+      <group
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectNode("battery");
+        }}
+      >
+        <BatteryCell
+          position={POS.battery}
+          pct={batteryPct}
+          charging={charging}
+          isSelected={selectedNode === "battery"}
+        />
       </group>
 
       {/* Load */}
-      <group onClick={(e) => { e.stopPropagation(); onSelectNode("load"); }}>
+      <group
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectNode("load");
+        }}
+      >
         <EarthLoad position={POS.load} kw={loadKw} isSelected={selectedNode === "load"} />
       </group>
 
       {/* Energy arcs */}
-      <LightningArc from={POS.sun} to={POS.controller} color="#d4a032" active={solarKw > 0.05} speed={0.7} />
-      <LightningArc from={charging ? POS.controller : POS.battery} to={charging ? POS.battery : POS.controller} color={charging ? "#2dd4bf" : "#dc4446"} active={Math.abs(batteryFlowKw) > 0.05} speed={0.55} />
-      <LightningArc from={POS.controller} to={POS.load} color="#60a5fa" active={loadKw > 0.05} speed={0.6} />
+      <LightningArc
+        from={POS.sun}
+        to={POS.controller}
+        color="#d4a032"
+        active={solarKw > 0.05}
+        speed={0.7}
+      />
+      <LightningArc
+        from={charging ? POS.controller : POS.battery}
+        to={charging ? POS.battery : POS.controller}
+        color={charging ? "#2dd4bf" : "#dc4446"}
+        active={Math.abs(batteryFlowKw) > 0.05}
+        speed={0.55}
+      />
+      <LightningArc
+        from={POS.controller}
+        to={POS.load}
+        color="#60a5fa"
+        active={loadKw > 0.05}
+        speed={0.6}
+      />
 
       {/* Labels */}
-      <Label position={[POS.sun.x, POS.sun.y + 1.1, 0]} color="#d4a032" title="SOLAR" value={`${solarKw.toFixed(2)} kW`} isSelected={selectedNode === "solar"} />
-      <Label position={[POS.battery.x, POS.battery.y - 1.15, 0]} color="#2dd4bf" title="BATTERY" value={`${batteryPct.toFixed(0)}%`} isSelected={selectedNode === "battery"} />
-      <Label position={[POS.load.x, POS.load.y - 1.1, 0]} color="#60a5fa" title="LOAD" value={`${loadKw.toFixed(2)} kW`} isSelected={selectedNode === "load"} />
+      <Label
+        position={[POS.sun.x, POS.sun.y + 1.1, 0]}
+        color="#d4a032"
+        title="SOLAR"
+        value={`${solarKw.toFixed(2)} kW`}
+        isSelected={selectedNode === "solar"}
+      />
+      <Label
+        position={[POS.battery.x, POS.battery.y - 1.15, 0]}
+        color="#2dd4bf"
+        title="BATTERY"
+        value={`${batteryPct.toFixed(0)}%`}
+        isSelected={selectedNode === "battery"}
+      />
+      <Label
+        position={[POS.load.x, POS.load.y - 1.1, 0]}
+        color="#60a5fa"
+        title="LOAD"
+        value={`${loadKw.toFixed(2)} kW`}
+        isSelected={selectedNode === "load"}
+      />
     </group>
   );
 }
 
 /* ===== CORE ORB ===== */
-function ControllerOrb({ solarKw, batteryPct, isSelected }: { solarKw: number; batteryPct: number; isSelected: boolean }) {
+function ControllerOrb({
+  solarKw,
+  batteryPct,
+  isSelected,
+}: {
+  solarKw: number;
+  batteryPct: number;
+  isSelected: boolean;
+}) {
   const orb = useRef<THREE.Mesh>(null);
   const rings = useRef<THREE.Group>(null);
   const outerGlow = useRef<THREE.Mesh>(null);
@@ -225,7 +303,13 @@ function ControllerOrb({ solarKw, batteryPct, isSelected }: { solarKw: number; b
         ))}
       </group>
 
-      <Html position={[0, 0.1, 1.2]} center transform distanceFactor={2.4} style={{ pointerEvents: "none" }}>
+      <Html
+        position={[0, 0.1, 1.2]}
+        center
+        transform
+        distanceFactor={2.4}
+        style={{ pointerEvents: "none" }}
+      >
         <div
           className="rounded-lg p-2 transition-all duration-300"
           style={{
@@ -236,11 +320,19 @@ function ControllerOrb({ solarKw, batteryPct, isSelected }: { solarKw: number; b
           }}
         >
           <div className="text-center" style={{ fontFamily: "JetBrains Mono" }}>
-            <div className="flex items-center justify-center gap-1 text-[8px] font-bold tracking-widest" style={{ color: "#6b6b7b" }}>
+            <div
+              className="flex items-center justify-center gap-1 text-[8px] font-bold tracking-widest"
+              style={{ color: "#6b6b7b" }}
+            >
               <Cpu className="h-2.5 w-2.5" />
               MPPT CORE
             </div>
-            <div className="mt-0.5 text-[16px] font-bold" style={{ color: "#e2e2e8", fontFamily: "Chakra Petch" }}>HM-6096</div>
+            <div
+              className="mt-0.5 text-[16px] font-bold"
+              style={{ color: "#e2e2e8", fontFamily: "Chakra Petch" }}
+            >
+              HM-6096
+            </div>
           </div>
         </div>
       </Html>
@@ -249,7 +341,15 @@ function ControllerOrb({ solarKw, batteryPct, isSelected }: { solarKw: number; b
 }
 
 /* ===== SOLAR SUN ===== */
-function EnergySun({ position, intensity, isSelected }: { position: THREE.Vector3; intensity: number; isSelected: boolean }) {
+function EnergySun({
+  position,
+  intensity,
+  isSelected,
+}: {
+  position: THREE.Vector3;
+  intensity: number;
+  isSelected: boolean;
+}) {
   const core = useRef<THREE.Mesh>(null);
   const corona = useRef<THREE.Mesh>(null);
   const coronaRing = useRef<THREE.Mesh>(null);
@@ -261,7 +361,8 @@ function EnergySun({ position, intensity, isSelected }: { position: THREE.Vector
       const s = (isSelected ? 1.12 : 1.0) + Math.sin(t * 2) * 0.05;
       core.current.scale.setScalar(s);
       const mat = core.current.material as THREE.MeshStandardMaterial;
-      mat.emissiveIntensity = 1.5 + intensity * 0.2 + (isSelected ? 0.5 : 0) + Math.sin(t * 2.5) * 0.1;
+      mat.emissiveIntensity =
+        1.5 + intensity * 0.2 + (isSelected ? 0.5 : 0) + Math.sin(t * 2.5) * 0.1;
     }
     if (corona.current) {
       corona.current.rotation.z = t * 0.12;
@@ -297,7 +398,13 @@ function EnergySun({ position, intensity, isSelected }: { position: THREE.Vector
 
       <mesh ref={core}>
         <sphereGeometry args={[0.4, 40, 40]} />
-        <meshStandardMaterial color="#d4a032" emissive="#b8860b" emissiveIntensity={2} roughness={0.05} metalness={0.4} />
+        <meshStandardMaterial
+          color="#d4a032"
+          emissive="#b8860b"
+          emissiveIntensity={2}
+          roughness={0.05}
+          metalness={0.4}
+        />
       </mesh>
 
       <group ref={rays}>
@@ -305,7 +412,11 @@ function EnergySun({ position, intensity, isSelected }: { position: THREE.Vector
           const a = (i / 12) * Math.PI * 2;
           const len = i % 2 === 0 ? 0.24 : 0.15;
           return (
-            <mesh key={i} position={[Math.cos(a) * 0.62, Math.sin(a) * 0.62, 0]} rotation={[0, 0, a]}>
+            <mesh
+              key={i}
+              position={[Math.cos(a) * 0.62, Math.sin(a) * 0.62, 0]}
+              rotation={[0, 0, a]}
+            >
               <boxGeometry args={[len, 0.03, 0.03]} />
               <meshBasicMaterial color="#d4a032" transparent opacity={0.6} />
             </mesh>
@@ -319,7 +430,17 @@ function EnergySun({ position, intensity, isSelected }: { position: THREE.Vector
 }
 
 /* ===== BATTERY CELL ===== */
-function BatteryCell({ position, pct, charging, isSelected }: { position: THREE.Vector3; pct: number; charging: boolean; isSelected: boolean }) {
+function BatteryCell({
+  position,
+  pct,
+  charging,
+  isSelected,
+}: {
+  position: THREE.Vector3;
+  pct: number;
+  charging: boolean;
+  isSelected: boolean;
+}) {
   const fill = useRef<THREE.Mesh>(null);
   const shell = useRef<THREE.Mesh>(null);
 
@@ -337,7 +458,7 @@ function BatteryCell({ position, pct, charging, isSelected }: { position: THREE.
     }
     if (shell.current) {
       const mat = shell.current.material as THREE.MeshStandardMaterial;
-      mat.emissiveIntensity = isSelected ? 0.5 : (charging ? 0.25 : 0.1);
+      mat.emissiveIntensity = isSelected ? 0.5 : charging ? 0.25 : 0.1;
     }
   });
 
@@ -346,7 +467,12 @@ function BatteryCell({ position, pct, charging, isSelected }: { position: THREE.
       {isSelected && (
         <mesh rotation={[Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.9, 0.95, 40]} />
-          <meshBasicMaterial color={accentColor} side={THREE.DoubleSide} transparent opacity={0.6} />
+          <meshBasicMaterial
+            color={accentColor}
+            side={THREE.DoubleSide}
+            transparent
+            opacity={0.6}
+          />
         </mesh>
       )}
 
@@ -357,7 +483,13 @@ function BatteryCell({ position, pct, charging, isSelected }: { position: THREE.
 
       <mesh ref={shell}>
         <cylinderGeometry args={[0.42, 0.42, 1.15, 28]} />
-        <meshStandardMaterial color="#0e0e14" emissive={accentColor} emissiveIntensity={0.15} roughness={0.12} metalness={0.9} />
+        <meshStandardMaterial
+          color="#0e0e14"
+          emissive={accentColor}
+          emissiveIntensity={0.15}
+          roughness={0.12}
+          metalness={0.9}
+        />
       </mesh>
 
       <mesh position={[0, 0.68, 0]}>
@@ -371,7 +503,13 @@ function BatteryCell({ position, pct, charging, isSelected }: { position: THREE.
 
       <mesh ref={fill} position={[0, -0.5, 0]} scale={[0.85, 0.01, 0.85]}>
         <cylinderGeometry args={[0.37, 0.37, 1.02, 28]} />
-        <meshStandardMaterial color={accentColor} emissive={accentColor} emissiveIntensity={0.6} transparent opacity={0.7} />
+        <meshStandardMaterial
+          color={accentColor}
+          emissive={accentColor}
+          emissiveIntensity={0.6}
+          transparent
+          opacity={0.7}
+        />
       </mesh>
 
       {charging && (
@@ -385,7 +523,15 @@ function BatteryCell({ position, pct, charging, isSelected }: { position: THREE.
 }
 
 /* ===== EARTH LOAD NODE ===== */
-function EarthLoad({ position, kw, isSelected }: { position: THREE.Vector3; kw: number; isSelected: boolean }) {
+function EarthLoad({
+  position,
+  kw,
+  isSelected,
+}: {
+  position: THREE.Vector3;
+  kw: number;
+  isSelected: boolean;
+}) {
   const planet = useRef<THREE.Mesh>(null);
   const atmosphere = useRef<THREE.Mesh>(null);
   const city = useRef<THREE.Mesh>(null);
@@ -419,12 +565,24 @@ function EarthLoad({ position, kw, isSelected }: { position: THREE.Vector3; kw: 
 
       <mesh ref={planet}>
         <sphereGeometry args={[0.45, 40, 40]} />
-        <meshStandardMaterial color="#0a0a14" emissive="#000820" emissiveIntensity={0.4} roughness={0.6} metalness={0.3} />
+        <meshStandardMaterial
+          color="#0a0a14"
+          emissive="#000820"
+          emissiveIntensity={0.4}
+          roughness={0.6}
+          metalness={0.3}
+        />
       </mesh>
 
       <mesh ref={city} position={[0.02, 0.08, 0.42]}>
         <planeGeometry args={[0.4, 0.3]} />
-        <meshStandardMaterial color="#60a5fa" emissive="#60a5fa" emissiveIntensity={0.8} transparent opacity={0.5} />
+        <meshStandardMaterial
+          color="#60a5fa"
+          emissive="#60a5fa"
+          emissiveIntensity={0.8}
+          transparent
+          opacity={0.5}
+        />
       </mesh>
 
       <mesh position={[-0.15, -0.04, 0.4]} rotation={[0, 0.2, 0.1]}>
@@ -441,7 +599,19 @@ function EarthLoad({ position, kw, isSelected }: { position: THREE.Vector3; kw: 
 }
 
 /* ===== ENERGY ARC ===== */
-function LightningArc({ from, to, color, active, speed = 0.6 }: { from: THREE.Vector3; to: THREE.Vector3; color: string; active: boolean; speed?: number }) {
+function LightningArc({
+  from,
+  to,
+  color,
+  active,
+  speed = 0.6,
+}: {
+  from: THREE.Vector3;
+  to: THREE.Vector3;
+  color: string;
+  active: boolean;
+  speed?: number;
+}) {
   const particles = [useRef<THREE.Mesh>(null), useRef<THREE.Mesh>(null), useRef<THREE.Mesh>(null)];
 
   const points = useMemo(() => {
@@ -464,7 +634,7 @@ function LightningArc({ from, to, color, active, speed = 0.6 }: { from: THREE.Ve
     particles.forEach((pRef, idx) => {
       const mesh = pRef.current;
       if (!mesh || !active) return;
-      const progress = ((t * speed + offsets[idx]) % 1 + 1) % 1;
+      const progress = (((t * speed + offsets[idx]) % 1) + 1) % 1;
       const segProg = progress * (points.length - 1);
       const index = Math.min(Math.floor(segProg), points.length - 2);
       const subT = segProg - index;
@@ -473,7 +643,7 @@ function LightningArc({ from, to, color, active, speed = 0.6 }: { from: THREE.Ve
       mesh.position.set(
         p0.x + (p1.x - p0.x) * subT,
         p0.y + (p1.y - p0.y) * subT,
-        p0.z + (p1.z - p0.z) * subT
+        p0.z + (p1.z - p0.z) * subT,
       );
       const baseSize = idx === 0 ? 0.08 : 0.055;
       mesh.scale.setScalar(baseSize * (0.9 + Math.sin(t * 10 + offsets[idx] * 15) * 0.25));
@@ -498,7 +668,19 @@ function LightningArc({ from, to, color, active, speed = 0.6 }: { from: THREE.Ve
 }
 
 /* ===== HUD LABELS ===== */
-function Label({ position, color, title, value, isSelected }: { position: [number, number, number]; color: string; title: string; value: string; isSelected: boolean }) {
+function Label({
+  position,
+  color,
+  title,
+  value,
+  isSelected,
+}: {
+  position: [number, number, number];
+  color: string;
+  title: string;
+  value: string;
+  isSelected: boolean;
+}) {
   return (
     <Html position={position} center style={{ pointerEvents: "none" }}>
       <div
@@ -510,8 +692,13 @@ function Label({ position, color, title, value, isSelected }: { position: [numbe
         }}
       >
         <div style={{ fontFamily: "JetBrains Mono", textAlign: "center" }}>
-          <div className="text-[8px] font-bold tracking-[0.2em]" style={{ color: "#6b6b7b" }}>{title}</div>
-          <div className="mt-0.5 text-sm font-bold tabular-nums" style={{ color, textShadow: `0 0 8px ${color}40` }}>
+          <div className="text-[8px] font-bold tracking-[0.2em]" style={{ color: "#6b6b7b" }}>
+            {title}
+          </div>
+          <div
+            className="mt-0.5 text-sm font-bold tabular-nums"
+            style={{ color, textShadow: `0 0 8px ${color}40` }}
+          >
             {value}
           </div>
         </div>

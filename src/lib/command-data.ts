@@ -69,11 +69,11 @@ function solarIrradiance(hour: number): number {
 
 /** Returns a load multiplier [0.4–1.5] for a given hour. */
 function loadPattern(hour: number): number {
-  if (hour < 6) return 0.4 + hour * 0.03;               // 00–06: deep sleep → 0.4→0.58
-  if (hour < 9) return 0.58 + (hour - 6) * 0.25;        // 06–09: morning rush → 0.58→1.33
-  if (hour < 16) return 1.0 + Math.sin((hour - 9) / 7 * Math.PI) * 0.2; // 09–16: workday dip → ~1.0
-  if (hour < 21) return 1.2 + (hour - 16) * 0.08;       // 16–21: evening peak → 1.2→1.6
-  return 1.6 - (hour - 21) * 0.15;                      // 21–24: winding down → 1.6→1.15
+  if (hour < 6) return 0.4 + hour * 0.03; // 00–06: deep sleep → 0.4→0.58
+  if (hour < 9) return 0.58 + (hour - 6) * 0.25; // 06–09: morning rush → 0.58→1.33
+  if (hour < 16) return 1.0 + Math.sin(((hour - 9) / 7) * Math.PI) * 0.2; // 09–16: workday dip → ~1.0
+  if (hour < 21) return 1.2 + (hour - 16) * 0.08; // 16–21: evening peak → 1.2→1.6
+  return 1.6 - (hour - 21) * 0.15; // 21–24: winding down → 1.6→1.15
 }
 
 /** How many kWh our solar would generate at peak in clear sky (system size). */
@@ -84,12 +84,12 @@ function seedSeries(now: Date): SeriesPoint[] {
   const startHour = now.getHours() - 11;
   const out: SeriesPoint[] = [];
   for (let i = 0; i < 24; i++) {
-    const hour = ((startHour + i) % 24 + 24) % 24;
+    const hour = (((startHour + i) % 24) + 24) % 24;
     const irrad = solarIrradiance(hour);
     out.push({
       t: hour,
       solar: +(irrad * (SYSTEM_PEAK_KW - 0.8 + r() * 0.6)).toFixed(2),
-      load: +((loadPattern(hour) * 1.3 + r() * 0.2)).toFixed(2),
+      load: +(loadPattern(hour) * 1.3 + r() * 0.2).toFixed(2),
       battery: +(55 + irrad * 35 + r() * 3).toFixed(1),
     });
   }
@@ -118,7 +118,7 @@ function updateCloudFactor(c: CloudState): number {
     if (Math.random() < 0.4) {
       c.target = 0.85 + Math.random() * 0.15; // clear
     } else if (Math.random() < 0.6) {
-      c.target = 0.4 + Math.random() * 0.3;   // partly cloudy
+      c.target = 0.4 + Math.random() * 0.3; // partly cloudy
     } else {
       c.target = 0.15 + Math.random() * 0.25; // overcast
     }
@@ -144,7 +144,7 @@ export function useLiveMetrics(): Metrics {
     const hour = now.getHours() + now.getMinutes() / 60;
     const irrad = solarIrradiance(hour);
     const solar = +(irrad * SYSTEM_PEAK_KW * 0.85).toFixed(2);
-    const load = +((loadPattern(hour) * 1.3)).toFixed(2);
+    const load = +(loadPattern(hour) * 1.3).toFixed(2);
     const net = solar - load;
     const batteryPct = 78;
     return {
@@ -152,9 +152,10 @@ export function useLiveMetrics(): Metrics {
       batteryPct,
       loadKw: load,
       batteryFlowKw: +net.toFixed(2),
-      runtimeHours: load > 0 ? +((BANK_KWH * (batteryPct / 100)) / Math.max(-net, 0.05)).toFixed(1) : 99,
+      runtimeHours:
+        load > 0 ? +((BANK_KWH * (batteryPct / 100)) / Math.max(-net, 0.05)).toFixed(1) : 99,
       series: seedSeries(now),
-      todayKwh: +((solarIrradiance(Math.max(6, Math.min(hour, 18))) * 14)).toFixed(1),
+      todayKwh: +(solarIrradiance(Math.max(6, Math.min(hour, 18))) * 14).toFixed(1),
       peakKw: solar,
       isCharging: net >= 0,
       batteryNetW: Math.abs(Math.round(net * 1000)),
@@ -171,7 +172,11 @@ export function useLiveMetrics(): Metrics {
         const rawIrrad = solarIrradiance(hour);
         const cloudFactor = updateCloudFactor(cloudRef.current);
         const solarNoise = (Math.random() - 0.5) * 0.12; // inverter & sensor noise
-        const solarKw = +clamp(rawIrrad * SYSTEM_PEAK_KW * cloudFactor + solarNoise, 0, SYSTEM_PEAK_KW * 1.02).toFixed(2);
+        const solarKw = +clamp(
+          rawIrrad * SYSTEM_PEAK_KW * cloudFactor + solarNoise,
+          0,
+          SYSTEM_PEAK_KW * 1.02,
+        ).toFixed(2);
 
         // ── Load: pattern-based + noise ──
         const loadKw = +clamp(loadPattern(hour) * 1.3 + loadNoise(), 0.3, 2.8).toFixed(2);
@@ -190,18 +195,15 @@ export function useLiveMetrics(): Metrics {
         // ── Runtime: when discharging, how long until 10% SOC ──
         const effectiveCapacity = BANK_KWH * ((batteryPct - 10) / 100);
         const dischargeRate = Math.max(-batteryFlowKw, 0); // only when discharging
-        const runtimeHours = dischargeRate > 0.05
-          ? +clamp(effectiveCapacity / dischargeRate, 0, 48).toFixed(1)
-          : 48;
+        const runtimeHours =
+          dischargeRate > 0.05 ? +clamp(effectiveCapacity / dischargeRate, 0, 48).toFixed(1) : 48;
 
         // ── Accumulated energy today ──
         const todayKwh = +(s.todayKwh + solarKw * HOURS_PER_TICK).toFixed(1);
 
         // ── Peak tracking ──
         // Reset peak at midnight-ish
-        const peakKw = (hour < 1 && s.peakKw > 0.5)
-          ? 0
-          : Math.max(s.peakKw, solarKw);
+        const peakKw = hour < 1 && s.peakKw > 0.5 ? 0 : Math.max(s.peakKw, solarKw);
 
         // ── Series ──
         const last = s.series[s.series.length - 1];
@@ -213,7 +215,18 @@ export function useLiveMetrics(): Metrics {
           { t: +newT.toFixed(1), solar: solarKw, load: loadKw, battery: batteryPct },
         ];
 
-        return { solarKw, batteryPct, loadKw, batteryFlowKw, runtimeHours, series, todayKwh, peakKw, isCharging, batteryNetW };
+        return {
+          solarKw,
+          batteryPct,
+          loadKw,
+          batteryFlowKw,
+          runtimeHours,
+          series,
+          todayKwh,
+          peakKw,
+          isCharging,
+          batteryNetW,
+        };
       });
     }, TICK_MS);
     return () => clearInterval(id);
