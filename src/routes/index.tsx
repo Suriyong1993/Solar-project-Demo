@@ -12,6 +12,8 @@ import { WeatherWidget } from "@/components/command/WeatherWidget";
 import { InsightsStrip, type InsightsData } from "@/components/command/InsightsStrip";
 import { useLiveMetrics } from "@/lib/tuya-integration";
 import { SolerieuSpecOverlay } from "@/components/command/SolerieuSpecOverlay";
+import { AlertsPanel } from "@/components/command/AlertsPanel";
+import { SettingsPanel } from "@/components/command/SettingsPanel";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -26,6 +28,8 @@ export const Route = createFileRoute("/")({
 function Index() {
   const m = useLiveMetrics();
   const [specsOpen, setSpecsOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [selectedNode, setSelectedNode] = useState<string | null>("controller");
 
   const insightsData: InsightsData = {
@@ -105,8 +109,31 @@ function Index() {
   return (
     <div className="relative min-h-screen overflow-x-hidden text-[#e2e2e8]">
       <AtmosphereBackground />
-      <TopNav tuya={m.tuya} onOpenSpecs={() => setSpecsOpen(true)} />
+      <TopNav
+        tuya={m.tuya}
+        onOpenSpecs={() => setSpecsOpen(true)}
+        onOpenAlerts={() => setAlertsOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
+      />
       <SolerieuSpecOverlay isOpen={specsOpen} onClose={() => setSpecsOpen(false)} />
+      <AlertsPanel
+        isOpen={alertsOpen}
+        onClose={() => setAlertsOpen(false)}
+        source={m.tuya?.source ?? "simulation"}
+        lastSync={m.tuya?.lastSync ?? 0}
+      />
+      <SettingsPanel
+        isOpen={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        source={m.tuya?.source ?? "simulation"}
+        lastSync={m.tuya?.lastSync ?? 0}
+        deviceId={m.tuya?.deviceId ?? ""}
+        onReconnect={() => {
+          setSettingsOpen(false);
+          // Trigger refetch by unmounting and remounting the main component
+          window.location.reload();
+        }}
+      />
 
       {/* Header — clean, minimal */}
       <section className="mx-auto max-w-[1400px] px-4 pt-8 pb-3 md:px-8">

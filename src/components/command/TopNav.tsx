@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Bell, Settings, Sun, Thermometer, Wifi, BarChart3 } from "lucide-react";
+import { Bell, Settings, Sun, Thermometer, Wifi, BarChart3, RefreshCw } from "lucide-react";
 import { motion } from "framer-motion";
 
 import type { TuyaStatus } from "@/lib/tuya-integration";
 
-export function TopNav({ tuya, onOpenSpecs }: { tuya?: TuyaStatus; onOpenSpecs: () => void }) {
+export function TopNav({ tuya, onOpenSpecs, onOpenAlerts, onOpenSettings }: { tuya?: TuyaStatus; onOpenSpecs: () => void; onOpenAlerts?: () => void; onOpenSettings?: () => void }) {
   const [time, setTime] = useState(() => new Date());
   useEffect(() => {
     const id = setInterval(() => setTime(new Date()), 1000);
@@ -56,14 +56,26 @@ export function TopNav({ tuya, onOpenSpecs }: { tuya?: TuyaStatus; onOpenSpecs: 
         <span className="hidden rounded-md border border-white/[0.06] bg-white/[0.02] px-2.5 py-1 font-mono text-[10px] font-medium tracking-wider text-[#6b6b7b] md:inline-block">
           {tuya?.deviceId ? `DEV-${tuya.deviceId.substring(0, 6)}` : "NO DEVICE"}
         </span>
-        <IconButton><Bell className="h-3.5 w-3.5" /></IconButton>
-        <IconButton><Settings className="h-3.5 w-3.5" /></IconButton>
+        <IconButton onClick={onOpenAlerts}><Bell className="h-3.5 w-3.5" /></IconButton>
+        <IconButton onClick={onOpenSettings}><Settings className="h-3.5 w-3.5" /></IconButton>
       </div>
     </motion.header>
   );
 }
 
 function StatusLine({ tuya }: { tuya?: TuyaStatus }) {
+  if (tuya?.source === "connecting") {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="relative inline-flex h-1.5 w-1.5">
+          <span className="absolute inline-flex h-full w-full animate-ping-subtle rounded-full bg-[#d4a032] opacity-75" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#d4a032]" />
+        </span>
+        <RefreshCw className="h-3 w-3 animate-spin text-[#d4a032]" />
+        <span className="text-[11px] font-medium text-[#d4a032]">CONNECTING</span>
+      </div>
+    );
+  }
   if (tuya?.source === "tuya") {
     return (
       <div className="flex items-center gap-2">
@@ -94,9 +106,12 @@ function StatusLine({ tuya }: { tuya?: TuyaStatus }) {
   );
 }
 
-function IconButton({ children }: { children: React.ReactNode }) {
+function IconButton({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) {
   return (
-    <button className="grid h-7 w-7 place-items-center rounded-md border border-white/[0.06] bg-white/[0.02] text-[#6b6b7b] transition-all hover:border-white/[0.12] hover:bg-white/[0.04] hover:text-[#e2e2e8]">
+    <button
+      onClick={onClick}
+      className="grid h-7 w-7 place-items-center rounded-md border border-white/[0.06] bg-white/[0.02] text-[#6b6b7b] transition-all hover:border-white/[0.12] hover:bg-white/[0.04] hover:text-[#e2e2e8]"
+    >
       {children}
     </button>
   );
