@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { SeriesPoint } from "@/lib/command-data";
 
 interface EnergyGraphProps {
