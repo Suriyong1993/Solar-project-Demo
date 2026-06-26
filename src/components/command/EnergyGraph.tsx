@@ -1,127 +1,176 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 import type { SeriesPoint } from "@/lib/command-data";
 
-export function EnergyGraph({ data }: { data: SeriesPoint[] }) {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className="panel relative overflow-hidden rounded-lg p-5"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div
-            className="text-[9px] font-semibold uppercase tracking-[0.2em]"
-            style={{ color: "#d4a032", fontFamily: "JetBrains Mono" }}
-          >
-            TELEMETRY_24H
-          </div>
-          <div
-            className="mt-1 text-lg font-bold"
-            style={{ color: "#e2e2e8", fontFamily: "Chakra Petch" }}
-          >
-            ENERGY FLOW
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-4 text-[10px] font-medium">
-          <Legend color="#d4a032" label="SOLAR" />
-          <Legend color="#60a5fa" label="LOAD" />
-          <Legend color="#2dd4bf" label="SOC" />
-        </div>
-      </div>
-
-      <div className="mt-5 h-[240px] w-full">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-            <defs>
-              <linearGradient id="gSolar" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#d4a032" stopOpacity={0.4} />
-                <stop offset="100%" stopColor="#d4a032" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="gLoad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#60a5fa" stopOpacity={0.35} />
-                <stop offset="100%" stopColor="#60a5fa" stopOpacity={0} />
-              </linearGradient>
-              <linearGradient id="gBat" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#2dd4bf" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#2dd4bf" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke="rgba(255,255,255,0.04)" strokeDasharray="3 3" vertical={false} />
-            <XAxis
-              dataKey="t"
-              tick={{ fill: "#3a3a4a", fontSize: 9, fontFamily: "JetBrains Mono" }}
-              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
-              tickLine={false}
-              tickFormatter={(v) => `${v.toString().padStart(2, "0")}:00`}
-            />
-            <YAxis
-              tick={{ fill: "#3a3a4a", fontSize: 9, fontFamily: "JetBrains Mono" }}
-              axisLine={{ stroke: "rgba(255,255,255,0.06)" }}
-              tickLine={false}
-            />
-            <Tooltip
-              cursor={{ stroke: "#d4a032", strokeWidth: 1, strokeDasharray: "4 4" }}
-              contentStyle={{
-                background: "rgba(12,12,18,0.95)",
-                border: "1px solid rgba(212,160,50,0.2)",
-                borderRadius: 8,
-                color: "#e2e2e8",
-                fontFamily: "JetBrains Mono",
-                fontSize: 10,
-                fontWeight: 600,
-              }}
-              labelFormatter={(v) => `${v.toString().padStart(2, "0")}:00`}
-              formatter={(value: number, name: string) => {
-                const units: Record<string, string> = { solar: "kW", load: "kW", battery: "%" };
-                return [`${Number(value).toFixed(2)} ${units[name] || ""}`, name.toUpperCase()];
-              }}
-            />
-            <Area
-              type="monotone"
-              dataKey="solar"
-              stroke="#d4a032"
-              strokeWidth={2}
-              fill="url(#gSolar)"
-            />
-            <Area
-              type="monotone"
-              dataKey="load"
-              stroke="#60a5fa"
-              strokeWidth={1.5}
-              fill="url(#gLoad)"
-            />
-            <Area
-              type="monotone"
-              dataKey="battery"
-              stroke="#2dd4bf"
-              strokeWidth={1.5}
-              fill="url(#gBat)"
-              yAxisId={0}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </motion.div>
-  );
+interface EnergyGraphProps {
+  data: SeriesPoint[];
 }
 
-function Legend({ color, label }: { color: string; label: string }) {
+export function EnergyGraph({ data }: EnergyGraphProps) {
+  const pathData = useMemo(() => {
+    if (!data.length) return { solar: "", load: "", battery: "" };
+    const w = 600;
+    const h = 180;
+    const maxVal = Math.max(...data.map((d) => Math.max(d.solar, d.load, d.battery / 20)), 2);
+    const pad = 8;
+
+    const toPoint = (val: number, i: number) => {
+      const x = pad + (i / (data.length - 1)) * (w - pad * 2);
+      const y = h - pad - (val / maxVal) * (h - pad * 2);
+      return { x, y };
+    };
+
+    const buildPath = (values: number[]) => {
+      const points = values.map((v, i) => toPoint(v, i));
+      if (points.length === 0) return "";
+      let path = `M ${points[0].x},${points[0].y}`;
+      for (let i = 1; i < points.length; i++) {
+        const prev = points[i - 1];
+        const curr = points[i];
+        const cpx1 = prev.x + (curr.x - prev.x) * 0.4;
+        const cpx2 = prev.x + (curr.x - prev.x) * 0.6;
+        path += ` C ${cpx1},${prev.y} ${cpx2},${curr.y} ${curr.x},${curr.y}`;
+      }
+      return path;
+    };
+
+    const buildFillPath = (values: number[]) => {
+      const linePath = buildPath(values);
+      const lastPoint = toPoint(values[values.length - 1], values.length - 1);
+      const firstPoint = toPoint(values[0], 0);
+      return `${linePath} L ${lastPoint.x},${h - pad} L ${firstPoint.x},${h - pad} Z`;
+    };
+
+    return {
+      solar: buildPath(data.map((d) => d.solar)),
+      solarFill: buildFillPath(data.map((d) => d.solar)),
+      load: buildPath(data.map((d) => d.load)),
+      loadFill: buildFillPath(data.map((d) => d.load)),
+    };
+  }, [data]);
+
+  const labels = useMemo(() => {
+    if (!data.length) return [];
+    return data
+      .filter((_, i) => i % 3 === 0 || i === data.length - 1)
+      .map((d) => ({
+        label: `${d.t.toFixed(0)}h`,
+        x: 8 + (data.indexOf(d) / (data.length - 1)) * 584,
+      }));
+  }, [data]);
+
   return (
-    <span className="flex items-center gap-1.5" style={{ color, fontFamily: "JetBrains Mono" }}>
-      <span className="h-2 w-2 rounded-full" style={{ background: color }} />
-      {label}
-    </span>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className="glass rounded-[32px] p-5"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#6b6b80]">
+          Power Curve
+        </h3>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#f59e0b]" />
+            <span className="text-[9px] font-medium uppercase tracking-wider text-[#6b6b80]">
+              Solar
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-[#a855f7]" />
+            <span className="text-[9px] font-medium uppercase tracking-wider text-[#6b6b80]">
+              Load
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="relative w-full" style={{ aspectRatio: "600/200" }}>
+        <svg viewBox="0 0 600 200" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="solar-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#f59e0b" stopOpacity="0" />
+            </linearGradient>
+            <linearGradient id="load-grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#a855f7" stopOpacity="0.2" />
+              <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
+            </linearGradient>
+            <filter id="glow-solar">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <filter id="glow-load">
+              <feGaussianBlur stdDeviation="2" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
+
+          {/* Grid lines */}
+          {[0, 1, 2, 3].map((i) => (
+            <line
+              key={i}
+              x1="8"
+              y1={20 + i * 42}
+              x2="592"
+              y2={20 + i * 42}
+              stroke="rgba(255,255,255,0.04)"
+              strokeWidth="0.5"
+            />
+          ))}
+
+          {/* Solar fill */}
+          <path d={pathData.solarFill} fill="url(#solar-grad)" />
+
+          {/* Load fill */}
+          <path d={pathData.loadFill} fill="url(#load-grad)" />
+
+          {/* Solar line */}
+          <path
+            d={pathData.solar}
+            fill="none"
+            stroke="#f59e0b"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            filter="url(#glow-solar)"
+          />
+
+          {/* Load line */}
+          <path
+            d={pathData.load}
+            fill="none"
+            stroke="#a855f7"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            filter="url(#glow-load)"
+          />
+
+          {/* X-axis labels */}
+          {labels.map((l, i) => (
+            <text
+              key={i}
+              x={l.x}
+              y="192"
+              textAnchor="middle"
+              fill="#6b6b80"
+              fontSize="8"
+              fontFamily="Inter, sans-serif"
+              fontWeight="500"
+            >
+              {l.label}
+            </text>
+          ))}
+        </svg>
+      </div>
+    </motion.div>
   );
 }
