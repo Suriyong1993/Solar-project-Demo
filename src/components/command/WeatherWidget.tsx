@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Sunrise, Sunset, Zap, Cloud, Sun } from "lucide-react";
+import { Sunrise, Sunset, Zap, Cloud, Sun, Moon, Stars } from "lucide-react";
 import { useMemo, useEffect, useState } from "react";
 
 type WeatherWidgetProps = {
@@ -27,6 +27,15 @@ function calcSunTimes(): { sunriseH: number; sunriseM: number; sunsetH: number; 
   return { sunriseH, sunriseM, sunsetH, sunsetM };
 }
 
+function mulberry32(seed: number) {
+  return function () {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
 export function WeatherWidget({ peakKw }: WeatherWidgetProps) {
   const peakW = Math.round(peakKw * 1000);
   const now = new Date();
@@ -47,54 +56,96 @@ export function WeatherWidget({ peakKw }: WeatherWidgetProps) {
   const sunsetTotal = sunsetH * 60 + sunsetM;
   const sunriseTotal = sunriseH * 60 + sunriseM;
   const minutesToSunset = Math.max(0, sunsetTotal - totalMinutesNow);
+  const minutesToSunrise = Math.max(0, (totalMinutesNow > sunsetTotal ? 1440 - totalMinutesNow + sunriseTotal : sunriseTotal - totalMinutesNow));
 
   const fmt2 = (n: number) => n.toString().padStart(2, "0");
   const sunriseStr = `${fmt2(sunriseH)}:${fmt2(sunriseM)}`;
   const sunsetStr = `${fmt2(sunsetH)}:${fmt2(sunsetM)}`;
   const isDay = totalMinutesNow >= sunriseTotal && totalMinutesNow < sunsetTotal;
+  
   const countdownLabel = isDay
     ? minutesToSunset > 0
-      ? `${Math.floor(minutesToSunset / 60)}h ${minutesToSunset % 60}m`
-      : "Now"
-    : "Night mode";
+      ? `${Math.floor(minutesToSunset / 60)}h ${minutesToSunset % 60}m to Sunset`
+      : "Sunset Now"
+    : minutesToSunrise > 0 
+      ? `${Math.floor(minutesToSunrise / 60)}h ${minutesToSunrise % 60}m to Sunrise`
+      : "Sunrise Now";
 
-  // Day progress for the arc visualization
+  // Day progress for the arc visualization (0 to 1 during day, clamped at night)
   const dayLength = sunsetTotal - sunriseTotal;
-  const dayProgress = isDay ? (totalMinutesNow - sunriseTotal) / dayLength : 0;
+  const dayProgress = isDay ? (totalMinutesNow - sunriseTotal) / dayLength : (totalMinutesNow > sunsetTotal ? 1 : 0);
+
+  // Generate stars for night mode
+  const stars = useMemo(() => {
+    const r = mulberry32(1234);
+    return Array.from({ length: 20 }, (_, i) => ({
+      id: i,
+      x: 20 + r() * 240,
+      y: 10 + r() * 60,
+      size: 0.5 + r() * 1.5,
+      opacity: 0.2 + r() * 0.8,
+      duration: 2 + r() * 3,
+    }));
+  }, []);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6, delay: 0.3 }}
-      className="glass rounded-[32px] p-5"
+      className="glass rounded-[32px] p-6 flex flex-col"
+      style={{
+        boxShadow: isDay ? "0 8px 32px rgba(0,0,0,0.5)" : "0 0 40px rgba(0,212,255,0.05), 0 8px 32px rgba(0,0,0,0.5)",
+      }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-[11px] font-semibold uppercase tracking-[0.15em] text-[#6b6b80]">
+      <div className="flex items-center justify-between mb-5">
+        <h3 className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#e8e8f0]">
           Solar Weather
         </h3>
-        <div className="flex items-center gap-1.5">
+        <div 
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full"
+          style={{
+            backgroundColor: isDay ? "rgba(245,158,11,0.1)" : "rgba(168,85,247,0.1)",
+            border: `1px solid ${isDay ? "rgba(245,158,11,0.2)" : "rgba(168,85,247,0.2)"}`,
+          }}
+        >
           {isDay ? (
-            <Sun className="h-3.5 w-3.5 text-[#f59e0b]" />
+            <Sun className="h-4 w-4 text-[#f59e0b]" />
           ) : (
-            <Cloud className="h-3.5 w-3.5 text-[#6b6b80]" />
+            <Moon className="h-4 w-4 text-[#a855f7]" />
           )}
-          <span className="text-[9px] font-medium uppercase tracking-wider text-[#6b6b80]">
-            {isDay ? "DAY" : "NIGHT"}
+          <span 
+            className="text-[10px] font-bold uppercase tracking-[0.15em]"
+            style={{ color: isDay ? "#f59e0b" : "#a855f7" }}
+          >
+            {isDay ? "DAYLIGHT" : "NIGHTTIME"}
           </span>
         </div>
       </div>
 
-      {/* Sun arc visualization */}
-      <div className="relative h-24 mb-4">
-        <svg viewBox="0 0 280 96" className="w-full h-full">
+      {/* Sun/Moon arc visualization */}
+      <div className="relative h-28 mb-6 mt-2">
+        <svg viewBox="0 0 280 100" className="w-full h-full overflow-visible">
           <defs>
             <linearGradient id="sky-grad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#d97706" stopOpacity="0.1" />
-              <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#d97706" stopOpacity="0.08" />
+              <stop offset="0%" stopColor="#d97706" stopOpacity="0.15" />
+              <stop offset="50%" stopColor="#f59e0b" stopOpacity="0.25" />
+              <stop offset="100%" stopColor="#d97706" stopOpacity="0.1" />
+            </linearGradient>
+            <linearGradient id="night-grad" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#00d4ff" stopOpacity="0.05" />
+              <stop offset="50%" stopColor="#a855f7" stopOpacity="0.15" />
+              <stop offset="100%" stopColor="#00d4ff" stopOpacity="0.05" />
             </linearGradient>
             <filter id="sun-glow">
+              <feGaussianBlur stdDeviation="5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+            <filter id="moon-glow">
               <feGaussianBlur stdDeviation="4" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
@@ -103,95 +154,133 @@ export function WeatherWidget({ peakKw }: WeatherWidgetProps) {
             </filter>
           </defs>
 
-          {/* Sun path arc */}
+          {/* Stars (Night only) */}
+          {!isDay && stars.map(s => (
+            <circle key={s.id} cx={s.x} cy={s.y} r={s.size} fill="#e8e8f0" opacity={s.opacity}>
+              <animate attributeName="opacity" values={`${s.opacity};0.1;${s.opacity}`} dur={`${s.duration}s`} repeatCount="indefinite" />
+            </circle>
+          ))}
+
+          {/* Sun/Moon path arc */}
           <path
-            d="M 10,85 Q 140,10 270,85"
+            d="M 10,90 Q 140,10 270,90"
             fill="none"
-            stroke="rgba(245,158,11,0.08)"
-            strokeWidth="1"
-            strokeDasharray="4 4"
+            stroke={isDay ? "rgba(245,158,11,0.15)" : "rgba(168,85,247,0.15)"}
+            strokeWidth="1.5"
+            strokeDasharray="4 6"
           />
 
           {/* Sun position */}
           {isDay && (
             <g filter="url(#sun-glow)">
               <circle
-                r="10"
+                r="12"
                 cx={10 + dayProgress * 260}
-                cy={85 - Math.sin(dayProgress * Math.PI) * 70}
+                cy={90 - Math.sin(dayProgress * Math.PI) * 80}
                 fill="#f59e0b"
-                opacity={0.8}
+                opacity={0.9}
               >
-                <animate attributeName="r" values="10;11;10" dur="3s" repeatCount="indefinite" />
+                <animate attributeName="r" values="12;13.5;12" dur="3s" repeatCount="indefinite" />
               </circle>
               <circle
-                r="18"
+                r="22"
                 cx={10 + dayProgress * 260}
-                cy={85 - Math.sin(dayProgress * Math.PI) * 70}
+                cy={90 - Math.sin(dayProgress * Math.PI) * 80}
                 fill="#f59e0b"
-                opacity="0.1"
+                opacity="0.2"
               />
               <circle
-                r="28"
+                r="35"
                 cx={10 + dayProgress * 260}
-                cy={85 - Math.sin(dayProgress * Math.PI) * 70}
+                cy={90 - Math.sin(dayProgress * Math.PI) * 80}
                 fill="#f59e0b"
-                opacity="0.05"
+                opacity="0.08"
               />
             </g>
           )}
 
+          {/* Moon Position (simplified tracking for night) */}
+          {!isDay && (
+             <g filter="url(#moon-glow)">
+               {/* Moon sits at center at midnight for visual effect, otherwise tracks roughly */}
+               <circle
+                 r="10"
+                 cx={140}
+                 cy={30}
+                 fill="#e8e8f0"
+                 opacity={0.8}
+               />
+               <circle
+                 r="18"
+                 cx={140}
+                 cy={30}
+                 fill="#a855f7"
+                 opacity="0.2"
+               />
+               <circle
+                 r="30"
+                 cx={140}
+                 cy={30}
+                 fill="#00d4ff"
+                 opacity="0.05"
+               />
+             </g>
+          )}
+
           {/* Sky glow fill */}
-          {isDay && <path d={`M 10,85 Q 140,10 270,85 L 270,96 L 10,96 Z`} fill="url(#sky-grad)" />}
+          <path d={`M 10,90 Q 140,10 270,90 L 270,100 L 10,100 Z`} fill={isDay ? "url(#sky-grad)" : "url(#night-grad)"} />
+          
+          {/* Horizon Line */}
+          <line x1="0" y1="90" x2="280" y2="90" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
         </svg>
       </div>
 
       {/* Info rows */}
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-3 flex-1">
         <div
-          className="rounded-[16px] p-3"
+          className="rounded-[20px] p-4 flex flex-col items-center justify-center transition-all duration-300 hover:bg-white/[0.05]"
           style={{
             backgroundColor: "rgba(0,212,255,0.05)",
-            border: "1px solid rgba(0,212,255,0.1)",
+            border: "1px solid rgba(0,212,255,0.15)",
           }}
         >
-          <div className="flex items-center gap-1 mb-1">
-            <Sunrise className="h-3 w-3 text-[#00d4ff]" />
-            <span className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[#6b6b80]">
+          <div className="flex flex-col items-center gap-1.5 mb-2">
+            <Sunrise className="h-5 w-5 text-[#00d4ff]" />
+            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#6b6b80]">
               Rise
             </span>
           </div>
-          <span className="text-sm font-bold tabular-nums text-[#00d4ff]">{sunriseStr}</span>
+          <span className="text-base font-black tabular-nums text-[#00d4ff]" style={{ textShadow: "0 0 15px rgba(0,212,255,0.3)" }}>{sunriseStr}</span>
         </div>
         <div
-          className="rounded-[16px] p-3"
+          className="rounded-[20px] p-4 flex flex-col items-center justify-center transition-all duration-300 hover:bg-white/[0.05]"
           style={{
             backgroundColor: "rgba(245,158,11,0.05)",
-            border: "1px solid rgba(245,158,11,0.1)",
+            border: "1px solid rgba(245,158,11,0.15)",
           }}
         >
-          <div className="flex items-center gap-1 mb-1">
-            <Zap className="h-3 w-3 text-[#f59e0b]" />
-            <span className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[#6b6b80]">
+          <div className="flex flex-col items-center gap-1.5 mb-2">
+            <Zap className="h-5 w-5 text-[#f59e0b]" />
+            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#6b6b80]">
               Peak
             </span>
           </div>
-          <span className="text-sm font-bold tabular-nums text-[#f59e0b]">{peakW}W</span>
+          <span className="text-base font-black tabular-nums text-[#f59e0b]" style={{ textShadow: "0 0 15px rgba(245,158,11,0.3)" }}>{peakW}W</span>
         </div>
         <div
-          className="rounded-[16px] p-3"
+          className="rounded-[20px] p-4 flex flex-col items-center justify-center transition-all duration-300 hover:bg-white/[0.05]"
           style={{
             backgroundColor: "rgba(255,59,92,0.05)",
-            border: "1px solid rgba(255,59,92,0.1)",
+            border: "1px solid rgba(255,59,92,0.15)",
           }}
         >
-          <div className="flex items-center gap-1 mb-1">
-            <Sunset className="h-3 w-3 text-[#ff3b5c]" />
-            <span className="text-[8px] font-semibold uppercase tracking-[0.1em] text-[#6b6b80]">
+          <div className="flex flex-col items-center gap-1.5 mb-2">
+            <Sunset className="h-5 w-5 text-[#ff3b5c]" />
+            <span className="text-[9px] font-bold uppercase tracking-[0.15em] text-[#6b6b80]">
               Set
             </span>
           </div>
-          <span className="text-sm font-bold tabular-nums text-[#ff3b5c]">{sunsetStr}</span>
+          <span className="text-base font-black tabular-nums text-[#ff3b5c]" style={{ textShadow: "0 0 15px rgba(255,59,92,0.3)" }}>{sunsetStr}</span>
         </div>
       </div>
 
@@ -202,9 +291,12 @@ export function WeatherWidget({ peakKw }: WeatherWidgetProps) {
           initial={{ opacity: 0, y: 4 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -4 }}
-          className="mt-3 text-center text-[10px] font-medium text-[#6b6b80]"
+          className="mt-5 text-center flex items-center justify-center gap-2"
         >
-          {isDay ? `${countdownLabel} until sunset` : "Solar generation offline"}
+          {isDay ? <Sun className="h-3.5 w-3.5 text-[#f59e0b]" /> : <Stars className="h-3.5 w-3.5 text-[#00d4ff]" />}
+          <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: isDay ? "#f59e0b" : "#00d4ff" }}>
+            {countdownLabel}
+          </span>
         </motion.div>
       </AnimatePresence>
     </motion.div>
