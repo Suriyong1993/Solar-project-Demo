@@ -2,30 +2,27 @@
  * Tuya + Simulation Integration Layer
  * =====================================
  *
- * ตัวเชื่อมระหว่าง Tuya IoT API และ Simulation (useLiveMetrics)
+ * Bridges the Tuya IoT API (via server functions) and the Simulation
+ * (useLiveMetrics from command-data).
  *
- * การทำงาน:
- *   1. ถ้ามี Environment Variables (TUYA_CLIENT_ID ฯลฯ) → เรียก Tuya API จริง
- *   2. ถ้าไม่มี → ใช้ Simulation (fallback)
+ * How it works:
+ *   1. On mount, ask the server whether Tuya credentials are configured.
+ *   2. If configured → poll the server function every 10s for live metrics.
+ *   3. If the device is offline / the call fails → show simulation + offline.
+ *   4. If not configured → use simulation only.
  *
- * วิธีตั้งค่า:
- *   สร้างไฟล์ `.env` ในโฟลเดอร์ radiant-command-core:
+ * All credential access happens server-side in `tuya-server.ts`. This hook
+ * never reads environment variables or imports the client secret.
  *
- *     VITE_TUYA_CLIENT_ID=your_access_id
- *     VITE_TUYA_CLIENT_SECRET=your_access_secret
- *     VITE_TUYA_DEVICE_ID=your_device_id
- *     VITE_TUYA_ENDPOINT=https://openapi.tuyaus.com
- *
- *   หรือใช้ server-side environment variables:
- *
- *     TUYA_CLIENT_ID=your_access_id
- *     TUYA_CLIENT_SECRET=your_access_secret
- *     TUYA_DEVICE_ID=your_device_id
+ * Server-only environment variables:
+ *   TUYA_CLIENT_ID
+ *   TUYA_CLIENT_SECRET
+ *   TUYA_DEVICE_ID
+ *   TUYA_ENDPOINT
  */
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { getTuyaConfig } from "./tuya-config";
-import { pullTuyaMetrics } from "./tuya-client";
+import { getTuyaMetrics } from "./tuya-server";
 import { useLiveMetrics as useSimulatedMetrics, type Metrics } from "./command-data";
 
 export type DataSource = "connecting" | "simulation" | "tuya" | "offline";
@@ -52,45 +49,57 @@ const CONNECTING_TUYA_STATUS: TuyaStatus = {
 };
 
 /**
- * useLiveMetrics — เลือก data source อัตโนมัติ
+ * useLiveMetrics — auto-selects the data source
  *
- * - ถ้ามี Tuya credentials → Poll API จริงทุกๆ 10 วินาที
- * - ถ้า Tuya offline → แสดง simulation + offline status
- * - ถ้าไม่มี credentials → ใช้ simulation อย่างเดียว
+ * - If server-side Tuya credentials exist → poll the API every 10s
+ * - If Tuya is offline → show simulation + offline status
+ * - If no credentials → use simulation only
  */
 export function useLiveMetrics(): Metrics & { tuya?: TuyaStatus } {
   const sim = useSimulatedMetrics();
-  const hasTuya = !!getTuyaConfig();
+  // `hasTuya` is discovered from the server (not from client env vars).
+  // null = unknown (still connecting), true = configured, false = not configured.
+  const [hasTuya, setHasTuya] = useState<boolean | null>(null);
   const [tuyaMetrics, setTuyaMetrics] = useState<{
     solarKw: number;
     batteryPct: number;
     loadKw: number;
     batteryFlowKw: number;
+    systemVoltage: number;
+    mpptEfficiency: number;
+    deviceId: string;
   } | null>(null);
-  const [tuyaStatus, setTuyaStatus] = useState<TuyaStatus>(() =>
-    hasTuya ? CONNECTING_TUYA_STATUS : INITIAL_TUYA_STATUS,
-  );
+  const [tuyaStatus, setTuyaStatus] = useState<TuyaStatus>(CONNECTING_TUYA_STATUS);
   const mounted = useRef(true);
 
   const poll = useCallback(async () => {
-    if (!hasTuya) return;
-
     try {
-      const result = await pullTuyaMetrics();
+      const result = await getTuyaMetrics();
       if (!mounted.current) return;
 
-      if (result && result.online) {
+      // Reconcile hasTuya with whatever the server reported.
+      if (result.configured && hasTuya !== true) setHasTuya(true);
+      if (!result.configured) {
+        setHasTuya(false);
+        setTuyaStatus(INITIAL_TUYA_STATUS);
+        return;
+      }
+
+      if (result.metrics && result.metrics.online) {
         setTuyaMetrics({
-          solarKw: result.solarKw,
-          batteryPct: result.batteryPct,
-          loadKw: result.loadKw,
-          batteryFlowKw: result.batteryFlowKw,
+          solarKw: result.metrics.solarKw,
+          batteryPct: result.metrics.batteryPct,
+          loadKw: result.metrics.loadKw,
+          batteryFlowKw: result.metrics.batteryFlowKw,
+          systemVoltage: result.metrics.systemVoltage,
+          mpptEfficiency: result.metrics.mpptEfficiency,
+          deviceId: result.deviceId,
         });
         setTuyaStatus({
           source: "tuya",
-          systemVoltage: result.systemVoltage,
-          mpptEfficiency: result.mpptEfficiency,
-          deviceId: getTuyaConfig()?.deviceId || "",
+          systemVoltage: result.metrics.systemVoltage,
+          mpptEfficiency: result.metrics.mpptEfficiency,
+          deviceId: result.deviceId,
           lastSync: Date.now(),
         });
       } else {
@@ -98,6 +107,7 @@ export function useLiveMetrics(): Metrics & { tuya?: TuyaStatus } {
         setTuyaStatus((prev) => ({
           ...prev,
           source: "offline",
+          deviceId: result.deviceId,
           lastSync: Date.now(),
         }));
       }
@@ -110,19 +120,22 @@ export function useLiveMetrics(): Metrics & { tuya?: TuyaStatus } {
 
   useEffect(() => {
     mounted.current = true;
-    if (hasTuya) {
-      // Poll immediately, then every 10 seconds
-      poll();
-      const id = setInterval(poll, 10000);
-      return () => {
-        mounted.current = false;
-        clearInterval(id);
-      };
-    }
+    // Poll immediately, then every 10 seconds. The first call also resolves
+    // `hasTuya`; until then the source stays "connecting".
+    poll();
+    const id = setInterval(poll, 10000);
     return () => {
       mounted.current = false;
+      clearInterval(id);
     };
-  }, [hasTuya, poll]);
+  }, [poll]);
+
+  // Once we know Tuya is NOT configured, drop the connecting status.
+  useEffect(() => {
+    if (hasTuya === false) {
+      setTuyaStatus(INITIAL_TUYA_STATUS);
+    }
+  }, [hasTuya]);
 
   const merged = useMemo(() => {
     if (!tuyaMetrics) {

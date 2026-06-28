@@ -2,15 +2,12 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Wifi, WifiOff, RefreshCw, CheckCircle, XCircle, Settings, Cpu } from "lucide-react";
 
-type Props = {
-  isOpen: boolean;
-  onClose: () => void;
-  source: string;
-  lastSync: number;
-  deviceId: string;
-  onReconnect: () => void;
-};
-
+/**
+ * Boolean config flags supplied by the parent (index.tsx), sourced from the
+ * server function `getTuyaConfigStatus()`. Only set / not-set is exposed —
+ * never the actual secret value. Optional so the panel can render standalone
+ * (e.g. in isolation) with a safe default.
+ */
 type ConfigStatus = {
   clientId: boolean;
   clientSecret: boolean;
@@ -18,23 +15,35 @@ type ConfigStatus = {
   endpoint: string;
 };
 
-function getConfigStatus(): ConfigStatus {
-  const env =
-    typeof import.meta !== "undefined"
-      ? (import.meta as unknown as { env: Record<string, string | undefined> }).env
-      : process.env;
-  if (!env) return { clientId: false, clientSecret: false, deviceId: false, endpoint: "—" };
-  return {
-    clientId: !!(env.VITE_TUYA_CLIENT_ID || env.TUYA_CLIENT_ID),
-    clientSecret: !!(env.VITE_TUYA_CLIENT_SECRET || env.TUYA_CLIENT_SECRET),
-    deviceId: !!(env.VITE_TUYA_DEVICE_ID || env.TUYA_DEVICE_ID),
-    endpoint: env.VITE_TUYA_ENDPOINT || env.TUYA_ENDPOINT || "https://openapi.tuyaus.com",
-  };
-}
+const DEFAULT_CONFIG_STATUS: ConfigStatus = {
+  clientId: false,
+  clientSecret: false,
+  deviceId: false,
+  endpoint: "https://openapi.tuyaus.com",
+};
 
-export function SettingsPanel({ isOpen, onClose, source, lastSync, deviceId, onReconnect }: Props) {
+type Props = {
+  isOpen: boolean;
+  onClose: () => void;
+  source: string;
+  lastSync: number;
+  deviceId: string;
+  onReconnect: () => void;
+  /** Boolean config flags from the server function getTuyaConfigStatus(). */
+  configStatus?: ConfigStatus;
+};
+
+export function SettingsPanel({
+  isOpen,
+  onClose,
+  source,
+  lastSync,
+  deviceId,
+  onReconnect,
+  configStatus,
+}: Props) {
   const [testing, setTesting] = useState(false);
-  const config = getConfigStatus();
+  const config = configStatus ?? DEFAULT_CONFIG_STATUS;
   const allConfigured = config.clientId && config.clientSecret && config.deviceId;
 
   const handleReconnect = async () => {
@@ -242,10 +251,10 @@ export function SettingsPanel({ isOpen, onClose, source, lastSync, deviceId, onR
                       style={{ color: "#d4a032", fontFamily: "JetBrains Mono" }}
                     >
                       ⚡ Tuya credentials not fully configured. Set{" "}
-                      <span className="font-bold">VITE_TUYA_CLIENT_ID</span>,{" "}
-                      <span className="font-bold">VITE_TUYA_CLIENT_SECRET</span>, and{" "}
-                      <span className="font-bold">VITE_TUYA_DEVICE_ID</span> in{" "}
-                      <span className="font-bold">.env</span> to connect live.
+                      <span className="font-bold">TUYA_CLIENT_ID</span>,{" "}
+                      <span className="font-bold">TUYA_CLIENT_SECRET</span>, and{" "}
+                      <span className="font-bold">TUYA_DEVICE_ID</span> in{" "}
+                      <span className="font-bold">.env</span> (server-side) to connect live.
                     </p>
                   </div>
                 )}
