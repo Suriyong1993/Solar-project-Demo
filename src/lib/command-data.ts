@@ -79,6 +79,19 @@ function loadPattern(hour: number): number {
 /** How many kWh our solar would generate at peak in clear sky (system size). */
 const SYSTEM_PEAK_KW = 5.8;
 
+function estimateTodayKwh(hour: number): number {
+  const stepHours = 0.25;
+  const cappedHour = Math.max(0, Math.min(hour, 24));
+  let total = 0;
+
+  for (let t = 0; t < cappedHour; t += stepHours) {
+    const sampleHour = t + stepHours / 2;
+    total += solarIrradiance(sampleHour) * SYSTEM_PEAK_KW * 0.85 * stepHours;
+  }
+
+  return +total.toFixed(1);
+}
+
 function seedSeries(now: Date): SeriesPoint[] {
   const r = mulberry32(20350622);
   const startHour = now.getHours() - 11;
@@ -155,7 +168,7 @@ export function useLiveMetrics(): Metrics {
       runtimeHours:
         load > 0 ? +((BANK_KWH * (batteryPct / 100)) / Math.max(-net, 0.05)).toFixed(1) : 99,
       series: seedSeries(now),
-      todayKwh: +(solarIrradiance(Math.max(6, Math.min(hour, 18))) * 14).toFixed(1),
+      todayKwh: estimateTodayKwh(hour),
       peakKw: solar,
       isCharging: net >= 0,
       batteryNetW: Math.abs(Math.round(net * 1000)),

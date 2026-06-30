@@ -81,6 +81,7 @@ export function useLiveMetrics(): Metrics & { tuya?: TuyaStatus } {
       if (result.configured && hasTuya !== true) setHasTuya(true);
       if (!result.configured) {
         setHasTuya(false);
+        setTuyaMetrics(null);
         setTuyaStatus(INITIAL_TUYA_STATUS);
         return;
       }
@@ -104,6 +105,7 @@ export function useLiveMetrics(): Metrics & { tuya?: TuyaStatus } {
         });
       } else {
         // Tuya configured but offline
+        setTuyaMetrics(null);
         setTuyaStatus((prev) => ({
           ...prev,
           source: "offline",
@@ -113,6 +115,7 @@ export function useLiveMetrics(): Metrics & { tuya?: TuyaStatus } {
       }
     } catch {
       if (mounted.current) {
+        setTuyaMetrics(null);
         setTuyaStatus((prev) => ({ ...prev, source: "offline", lastSync: Date.now() }));
       }
     }

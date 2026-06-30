@@ -1,184 +1,90 @@
-import { useEffect, useState } from "react";
-import { Wifi, WifiOff, Zap, Signal } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+﻿import { useEffect, useState } from "react";
+import { Wifi, WifiOff, Zap, Sun, Moon } from "lucide-react";
+import { motion } from "framer-motion";
 import type { TuyaStatus } from "@/lib/tuya-integration";
 
 export function TopNav({ tuya }: { tuya?: TuyaStatus }) {
   const [time, setTime] = useState(() => new Date());
-  const [latency, setLatency] = useState<number>(0);
+  const [isLight, setIsLight] = useState(() => document.documentElement.classList.contains("light"));
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setTime(new Date());
-      setLatency(Math.round(Math.random() * 12 + 4)); // simulate 4–16ms
-    }, 1000);
+    const id = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
 
-  const t = time.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  });
+  useEffect(() => {
+    const handler = () => setIsLight(document.documentElement.classList.contains("light"));
+    const obs = new MutationObserver(handler);
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
+
+  const toggleTheme = () => document.documentElement.classList.toggle("light");
+
+  const t = time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
 
   const isConnected = tuya?.source === "tuya";
   const isConnecting = tuya?.source === "connecting";
-  const isSim = !isConnected && !isConnecting;
+  const isOffline = tuya?.source === "offline";
+  const isSim = !isConnected && !isConnecting && !isOffline;
 
-  const statusColor = isConnected ? "#00f593" : isConnecting ? "#f59e0b" : "#00d4ff";
-  const statusLabel = isConnected ? "LIVE" : isConnecting ? "SYNCING" : "SIMULATION";
+  const statusMeta = isConnected
+    ? { color: "var(--status-online)", label: "LIVE", Icon: Wifi }
+    : isConnecting
+    ? { color: "var(--status-warning)", label: "SYNCING", Icon: WifiOff }
+    : isOffline
+    ? { color: "var(--status-error)", label: "OFFLINE", Icon: WifiOff }
+    : { color: "var(--status-info)", label: "SIMULATION", Icon: WifiOff };
 
   return (
     <motion.header
-      initial={{ y: -24, opacity: 0 }}
+      initial={{ y: -16, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className="relative z-40 mx-4 mt-4 md:mx-8"
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+      className="relative z-40 mx-4 mt-4 md:mx-6"
     >
-      <div
-        className="rounded-[28px] px-5 py-3 flex items-center justify-between"
-        style={{
-          background: "rgba(10, 12, 20, 0.65)",
-          backdropFilter: "blur(60px) saturate(1.8)",
-          WebkitBackdropFilter: "blur(60px) saturate(1.8)",
-          border: "1px solid rgba(255,255,255,0.07)",
-          boxShadow:
-            "0 0 0 1px rgba(255,255,255,0.03) inset, 0 8px 32px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.04) inset",
-        }}
-      >
-        {/* Left — Brand */}
+      <div className="glass rounded-2xl px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="relative grid h-10 w-10 place-items-center">
-            {/* Glow ring */}
-            <div
-              className="absolute inset-0 rounded-full animate-pulse"
-              style={{
-                background: "radial-gradient(50% 50% at 50% 50%, rgba(0,212,255,0.2), transparent)",
-              }}
-            />
-            <div
-              className="relative grid h-9 w-9 place-items-center rounded-full"
-              style={{
-                background: "linear-gradient(135deg, rgba(0,212,255,0.2) 0%, rgba(0,245,147,0.12) 100%)",
-                border: "1px solid rgba(0,212,255,0.25)",
-                boxShadow: "0 0 16px rgba(0,212,255,0.15)",
-              }}
-            >
-              <Zap className="h-4 w-4 text-[#00d4ff]" strokeWidth={2.5} />
-            </div>
+          <div className="relative grid h-9 w-9 place-items-center rounded-xl bg-[var(--status-online)]/10 border border-[var(--status-online)]/20">
+            <Zap className="h-4 w-4" style={{ color: "var(--status-online)" }} strokeWidth={2} />
           </div>
-
           <div className="flex flex-col leading-tight">
-            <span
-              className="text-[15px] font-bold tracking-tight"
-              style={{
-                background: "linear-gradient(90deg, #e8e8f0 0%, #00d4ff 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              Radiant Core
-            </span>
-            <span className="text-[9px] font-medium uppercase tracking-[0.18em] text-[#6b6b80]">
-              Energy Command Center
-            </span>
+            <span className="text-[15px] font-bold tracking-tight text-[var(--text-primary)]">Radiant Core</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-[var(--text-muted)]">Energy Command Center</span>
           </div>
         </div>
 
-        {/* Center — Status */}
-        <div className="hidden items-center gap-5 md:flex">
-          {/* Connection status */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={statusLabel}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              transition={{ duration: 0.3 }}
-              className="flex items-center gap-2 rounded-full px-3 py-1.5"
-              style={{
-                backgroundColor: `${statusColor}0d`,
-                border: `1px solid ${statusColor}20`,
-              }}
-            >
-              <span className="relative flex h-2 w-2">
-                {(isConnected || isConnecting) && (
-                  <span
-                    className="absolute inline-flex h-full w-full rounded-full animate-ping"
-                    style={{ backgroundColor: statusColor, opacity: 0.5 }}
-                  />
-                )}
-                <span
-                  className="relative inline-flex h-2 w-2 rounded-full"
-                  style={{ backgroundColor: statusColor }}
-                />
-              </span>
-              {isConnected ? (
-                <Wifi className="h-3 w-3" style={{ color: statusColor }} />
-              ) : (
-                <WifiOff className="h-3 w-3" style={{ color: statusColor }} />
+        <div className="hidden items-center gap-4 md:flex">
+          <div className="flex items-center gap-2 rounded-full px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.1em]"
+            style={{ backgroundColor: `${statusMeta.color}10`, border: `1px solid ${statusMeta.color}20`, color: statusMeta.color }}>
+            <span className="relative flex h-2 w-2">
+              {(isConnected || isConnecting) && (
+                <span className="absolute inline-flex h-full w-full rounded-full animate-ping" style={{ backgroundColor: statusMeta.color, opacity: 0.4 }} />
               )}
-              <span className="text-[10px] font-bold uppercase tracking-[0.12em]" style={{ color: statusColor }}>
-                {statusLabel}
-              </span>
-            </motion.div>
-          </AnimatePresence>
-
-          {/* Divider */}
-          <div className="h-4 w-[1px] bg-white/[0.06]" />
-
-          {/* Timestamp */}
-          <div className="flex items-center gap-2">
-            <span
-              className="font-mono text-[13px] font-semibold tabular-nums"
-              style={{
-                color: "#e8e8f0",
-                textShadow: "0 0 20px rgba(0,212,255,0.2)",
-              }}
-            >
-              {t}
+              <span className="relative inline-flex h-full w-full rounded-full" style={{ backgroundColor: statusMeta.color }} />
             </span>
-            <span className="text-[8px] font-semibold uppercase tracking-[0.15em] text-[#6b6b80]">UTC+7</span>
+            <statusMeta.Icon className="h-3 w-3" />
+            {statusMeta.label}
           </div>
-
-          {/* Divider */}
-          <div className="h-4 w-[1px] bg-white/[0.06]" />
-
-          {/* Latency */}
-          <div className="flex items-center gap-1.5">
-            <Signal className="h-3 w-3 text-[#00f593]" />
-            <span className="font-mono text-[10px] font-semibold text-[#00f593] tabular-nums">{latency}ms</span>
-          </div>
+          <div className="h-4 w-px bg-[var(--border-default)]" />
+          <span className="font-mono text-[13px] font-semibold tabular-nums text-[var(--text-primary)]">{t}</span>
+          <span className="text-[9px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">UTC+7</span>
         </div>
 
-        {/* Right — Device + System */}
         <div className="flex items-center gap-2">
-          {/* System OK */}
-          <div className="hidden md:flex items-center gap-1.5 rounded-full px-2.5 py-1" style={{
-            backgroundColor: "rgba(0,212,255,0.05)",
-            border: "1px solid rgba(0,212,255,0.08)",
-          }}>
-            <div
-              className="h-1.5 w-1.5 rounded-full animate-pulse"
-              style={{ backgroundColor: "#00d4ff" }}
-            />
-            <span className="text-[9px] font-medium uppercase tracking-[0.12em] text-[#6b6b80]">
-              System OK
-            </span>
-          </div>
-
-          {/* Device badge */}
-          <div
-            className="rounded-full px-3 py-1.5 text-[9px] font-bold uppercase tracking-[0.12em]"
-            style={{
-              background: isSim
-                ? "linear-gradient(135deg, rgba(0,212,255,0.1), rgba(0,245,147,0.06))"
-                : "rgba(0,245,147,0.08)",
-              border: isSim ? "1px solid rgba(0,212,255,0.15)" : "1px solid rgba(0,245,147,0.15)",
-              color: isSim ? "#00d4ff" : "#00f593",
-            }}
+          <button
+            onClick={toggleTheme}
+            className="grid h-8 w-8 place-items-center rounded-lg border border-[var(--border-default)] bg-[var(--muted)]/50 text-[var(--text-secondary)] transition-colors hover:bg-[var(--muted)]"
+            aria-label="Toggle theme"
           >
+            {isLight ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          </button>
+          <div className="rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.1em]"
+            style={{
+              backgroundColor: isSim ? "color-mix(in srgb, var(--accent) 8%, transparent)" : "color-mix(in srgb, var(--status-online) 8%, transparent)",
+              border: `1px solid ${isSim ? "color-mix(in srgb, var(--accent) 15%, transparent)" : "color-mix(in srgb, var(--status-online) 15%, transparent)"}`,
+              color: isSim ? "var(--accent)" : "var(--status-online)",
+            }}>
             {tuya?.deviceId ? `DEV-${tuya.deviceId.substring(0, 8).toUpperCase()}` : "SIM MODE"}
           </div>
         </div>

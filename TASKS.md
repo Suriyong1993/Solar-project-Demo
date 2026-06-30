@@ -17,7 +17,7 @@ No P1, no P2, no new features, no redesign.
 Exactly one active task at a time. Sequential execution.
 
 ### S0-T1 — P0-1: Move Tuya credentials server-side
-- **Status:** ACTIVE
+- **Status:** COMPLETE (commit 0841fb7)
 - **Severity:** P0 Security
 - **Problem:** `tuya-config.ts` reads `VITE_TUYA_CLIENT_SECRET` (Vite prefix = client bundle). `SettingsPanel.tsx` also reads it. The Tuya client secret is exposed to the browser.
 - **Files affected:**
@@ -29,7 +29,7 @@ Exactly one active task at a time. Sequential execution.
 - **Verification:** `grep -r "VITE_TUYA" src/` returns zero matches. `npx tsc --noEmit` passes. App runs in dev.
 
 ### S0-T2 — P0-3: Drive system status from real state
-- **Status:** PENDING
+- **Status:** ACTIVE
 - **Severity:** P0 Honesty
 - **Problem:** `index.tsx:148-159` renders "Systems Nominal" badge unconditionally green, regardless of `tuya.source`.
 - **Fix:** Drive the badge from `m.tuya.source`. offline → red "OFFLINE", connecting → amber "CONNECTING", simulation → muted "SIMULATED", tuya → green "SYSTEMS NOMINAL".
